@@ -6,7 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+proc-macro2 = "1.0.56"
+quote = "1.0.26"
+syn = "2.0.15"
 
 [lib]
 name = "jsx"
 path = "jsx/lib.rs"
+proc-macro = true

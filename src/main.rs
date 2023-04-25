@@ -1,5 +1,7 @@
-use jsx;
+use jsx::my_macro;
 
 fn main() {
-  println!("From lib: {}", jsx::test());
+  my_macro! {
+    println!("From lib");
+  };
 }
