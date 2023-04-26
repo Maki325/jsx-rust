@@ -1,7 +1,14 @@
-use jsx_macros::my_macro;
+use jsx::element::Element;
+use jsx_macros::view;
+
+fn test() -> Element {
+  return view! {
+    <h1>
+    </h1>
+  };
+}
 
 fn main() {
-  my_macro! {
-    println!("From lib");
-  };
+  let view = test();
+  println!("{:#?}", view);
 }

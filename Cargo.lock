@@ -18,6 +18,7 @@ dependencies = [
 name = "jsx_macros"
 version = "0.1.0"
 dependencies = [
+ "jsx",
  "proc-macro2",
  "quote",
  "syn",
