@@ -1,4 +1,4 @@
-use jsx::my_macro;
+use jsx_macros::my_macro;
 
 fn main() {
   my_macro! {

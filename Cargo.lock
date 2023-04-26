@@ -3,7 +3,19 @@
 version = 3
 
 [[package]]
+name = "jsx"
+version = "0.1.0"
+
+[[package]]
 name = "jsx-rust"
+version = "0.1.0"
+dependencies = [
+ "jsx",
+ "jsx_macros",
+]
+
+[[package]]
+name = "jsx_macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

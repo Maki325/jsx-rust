@@ -1,4 +1,11 @@
 {
   "rust-analyzer.rustfmt.extraArgs": ["--config", "tab_spaces=2"],
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "prettier.tabWidth": 2,
+  "rust-analyzer.linkedProjects": [
+    "./jsx/Cargo.toml",
+    "./Cargo.toml",
+    "./jsx/Cargo.toml"
+  ]
 }

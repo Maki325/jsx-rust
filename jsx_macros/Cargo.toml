@@ -1,16 +1,14 @@
 [package]
-name = "jsx-rust"
+name = "jsx_macros"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-jsx = { path = "./jsx" }
-jsx_macros = { path = "./jsx_macros" }
+proc-macro2 = "1.0.56"
+quote = "1.0.26"
+syn = "2.0.15"
 
-[workspace]
-members = [
-  "jsx",
-  "jsx_macros",
-]
+[lib]
+proc-macro = true
