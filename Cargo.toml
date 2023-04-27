@@ -13,5 +13,4 @@ jsx_macros = { path = "./jsx_macros" }
 members = [
   "jsx",
   "jsx_macros",
-  "helper_macros",
 ]

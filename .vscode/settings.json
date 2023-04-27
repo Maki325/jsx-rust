@@ -4,9 +4,8 @@
   "editor.tabSize": 2,
   "prettier.tabWidth": 2,
   "rust-analyzer.linkedProjects": [
-    "./jsx/Cargo.toml",
     "./Cargo.toml",
     "./jsx/Cargo.toml",
-    "./helper_macros/Cargo.toml"
+    "./jsx_macros/Cargo.toml"
   ]
 }
