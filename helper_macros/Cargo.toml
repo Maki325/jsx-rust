@@ -1,5 +1,5 @@
 [package]
-name = "jsx_macros"
+name = "helper_macros"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,8 +9,6 @@ edition = "2021"
 proc-macro2 = "1.0.56"
 quote = "1.0.26"
 syn = "2.0.15"
-jsx = { path = "../jsx" }
-helper_macros = { path = "../helper_macros" }
 
 [lib]
 proc-macro = true

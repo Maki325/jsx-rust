@@ -3,12 +3,19 @@ use jsx_macros::view;
 
 fn test() -> Element {
   return view! {
-    <h1>
-    </h1>
+    <div>
+      Hellooooo, How are you?a "Hellooooo, How are you?a"
+    </div>
+  };
+}
+
+fn test_string() -> Element {
+  return view! {
+    Šell
   };
 }
 
 fn main() {
-  let view = test();
-  println!("{:#?}", view);
+  println!("{:#?}", test());
+  println!("{:#?}", test_string());
 }

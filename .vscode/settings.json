@@ -6,6 +6,7 @@
   "rust-analyzer.linkedProjects": [
     "./jsx/Cargo.toml",
     "./Cargo.toml",
-    "./jsx/Cargo.toml"
+    "./jsx/Cargo.toml",
+    "./helper_macros/Cargo.toml"
   ]
 }
