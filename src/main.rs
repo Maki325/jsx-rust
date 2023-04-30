@@ -1,16 +1,18 @@
 use jsx::element::Element;
-use jsx_macros::view;
+use jsx_macros::ssr;
 
 fn test() -> Element {
-  return view! {
+  return ssr! {
     <div>
-      "Hellooooo, How are you?a" 3.14159265358
+      "Hellooooo, How are you?a"
+      <br/>
+      3.14159265358
     </div>
   };
 }
 
 fn test_string() -> Element {
-  return view! {
+  return ssr! {
     "Šell"
   };
 }

@@ -8,9 +8,24 @@ edition = "2021"
 [dependencies]
 jsx = { path = "./jsx" }
 jsx_macros = { path = "./jsx_macros" }
+wasm-bindgen = "0.2.74"
 
 [workspace]
 members = [
   "jsx",
   "jsx_macros",
+]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Document',
+  'Element',
+  'HtmlElement',
+  'Node',
+  'Text',
+  'Window',
 ]

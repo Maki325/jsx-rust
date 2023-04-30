@@ -1,5 +1,5 @@
 use crate::attribute::Attribute;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{
   parse::{Parse, ParseStream},
   Ident, Lit, Result, Token,
@@ -26,7 +26,19 @@ impl Element {
   fn parse_element(input: ParseStream) -> Result<Self> {
     input.parse::<Token![<]>()?;
     let name: Ident = input.parse()?;
+    let self_closing = input.peek(Token![/]);
+    if self_closing {
+      input.parse::<Token![/]>()?;
+    }
     input.parse::<Token![>]>()?;
+
+    if self_closing {
+      return Ok(Element::Element(ElementValue {
+        name: name.to_string(),
+        attributes: vec![],
+        children: vec![],
+      }));
+    }
 
     let mut children: Vec<Element> = vec![];
 
@@ -84,24 +96,32 @@ impl Element {
       _ => return Err(syn::Error::new(lit.span(), "Unknown literal type")),
     };
   }
-}
 
-impl Parse for Element {
-  fn parse(input: ParseStream) -> Result<Self> {
-    match input.peek(Token![<]) {
-      false => {
-        return Element::parse_literal(input);
-      }
-      true => {}
-    };
-    return Element::parse_element(input);
-  }
-}
-
-impl ToTokens for Element {
-  fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-    let expanded = match self {
+  pub fn to_client_tokens(&self) -> proc_macro2::TokenStream {
+    return match self {
       Element::Element(ElementValue { name, children, .. }) => {
+        let children = children.iter().map(|child| child.to_client_tokens());
+        quote! {
+          {
+            let element = document.create_element(#name)?;
+            #(element.append_child(&#children.into())?;)*
+
+            element
+          }
+        }
+      }
+      Element::Literal(value) => {
+        quote! {
+          document.create_text_node(#value)
+        }
+      }
+    };
+  }
+
+  pub fn to_server_tokens(&self) -> proc_macro2::TokenStream {
+    return match self {
+      Element::Element(ElementValue { name, children, .. }) => {
+        let children = children.iter().map(|child| child.to_server_tokens());
         quote! {
           jsx::element::Element::Element({
             jsx::element::ElementValue {
@@ -118,7 +138,14 @@ impl ToTokens for Element {
         }
       }
     };
+  }
+}
 
-    tokens.extend(expanded);
+impl Parse for Element {
+  fn parse(input: ParseStream) -> Result<Self> {
+    match input.peek(Token![<]) {
+      false => return Element::parse_literal(input),
+      true => return Element::parse_element(input),
+    };
   }
 }
