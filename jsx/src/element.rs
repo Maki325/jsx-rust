@@ -22,6 +22,10 @@ pub enum Element {
   Literal(String),
 }
 
+pub trait Updateable<T: Clone>: Clone {
+  fn update(&mut self, new_value: T);
+}
+
 impl Element {
   fn parse_element(input: ParseStream) -> Result<Self> {
     input.parse::<Token![<]>()?;

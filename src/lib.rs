@@ -1,3 +1,4 @@
+use jsx::signal::create_signal;
 use jsx_macros::view;
 use wasm_bindgen::prelude::*;
 
@@ -9,6 +10,10 @@ pub fn run() -> Result<(), JsValue> {
   let window = web_sys::window().expect("no global `window` exists");
   let document = window.document().expect("should have a document on window");
   let body = document.body().expect("document should have a body");
+
+  let (count, _set_count) = create_signal(0);
+
+  let _test_value = count();
 
   let val = view! {
     <div>
