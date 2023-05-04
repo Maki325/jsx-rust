@@ -1,30 +1,9 @@
-use crate::attribute::Attribute;
-use quote::quote;
+use super::{element::ElementValue, Element};
 use syn::{
   parse::{Parse, ParseStream},
-  Ident, Lit, Result, Token,
+  spanned::Spanned,
+  Block, Expr, Ident, Lit, Result, Stmt, Token,
 };
-
-#[derive(Debug)]
-pub struct ElementValue {
-  pub name: String,
-  pub attributes: Vec<Attribute>,
-  pub children: Vec<Element>,
-}
-
-#[derive(Debug)]
-pub enum Element {
-  Element(ElementValue),
-
-  // I see no need to have different types of literals,
-  // as they will be rendered as strings anyway
-  // So we may as well just save them as strings
-  Literal(String),
-}
-
-pub trait Updateable<T: Clone>: Clone {
-  fn update(&mut self, new_value: T);
-}
 
 impl Element {
   fn parse_element(input: ParseStream) -> Result<Self> {
@@ -101,55 +80,92 @@ impl Element {
     };
   }
 
-  pub fn to_client_tokens(&self) -> proc_macro2::TokenStream {
-    return match self {
-      Element::Element(ElementValue { name, children, .. }) => {
-        let children = children.iter().map(|child| child.to_client_tokens());
-        quote! {
-          {
-            let element = document.create_element(#name)?;
-            #(element.append_child(&#children.into())?;)*
+  fn parse_expr(input: ParseStream) -> Result<Self> {
+    let mut block: Block = input.parse()?;
 
-            element
-          }
-        }
-      }
-      Element::Literal(value) => {
-        quote! {
-          document.create_text_node(#value)
-        }
+    // Like IDK if I should support multiple statements
+    if block.stmts.len() != 1 {
+      return Err(syn::Error::new(
+        block.brace_token.span.span(),
+        "Expected a single statement",
+      ));
+    }
+    let stmt = block.stmts.pop().expect("Should exist");
+
+    let expr = match stmt {
+      Stmt::Expr(expr, _) => expr,
+      _ => return Err(syn::Error::new(stmt.span(), "Expected an Expr")),
+    };
+
+    let path = match expr {
+      Expr::Path(path) => path,
+      _ => {
+        return Err(syn::Error::new(
+          expr.span(),
+          "Expected a Path (i.e. variable ident)",
+        ))
       }
     };
-  }
 
-  pub fn to_server_tokens(&self) -> proc_macro2::TokenStream {
-    return match self {
-      Element::Element(ElementValue { name, children, .. }) => {
-        let children = children.iter().map(|child| child.to_server_tokens());
-        quote! {
-          jsx::element::Element::Element({
-            jsx::element::ElementValue {
-              name: #name.to_string(),
-              attributes: Vec::new(),
-              children: vec![#(#children),*],
-            }
-          })
-        }
-      }
-      Element::Literal(value) => {
-        quote! {
-          jsx::element::Element::Literal(#value.to_string())
-        }
-      }
-    };
+    return Ok(Element::Updateable(path.into()));
   }
+}
+
+// Used to check the token we get, cause I need to be sure
+#[allow(dead_code)]
+pub fn expr_type(expr: &Expr) -> &'static str {
+  return match expr {
+    Expr::Array(_) => "Array",
+    Expr::Assign(_) => "Assign",
+    Expr::Async(_) => "Async",
+    Expr::Await(_) => "Await",
+    Expr::Binary(_) => "Binary",
+    Expr::Block(_) => "Block",
+    Expr::Break(_) => "Break",
+    Expr::Call(_) => "Call",
+    Expr::Cast(_) => "Cast",
+    Expr::Closure(_) => "Closure",
+    Expr::Const(_) => "Const",
+    Expr::Continue(_) => "Continue",
+    Expr::Field(_) => "Field",
+    Expr::ForLoop(_) => "ForLoop",
+    Expr::Group(_) => "Group",
+    Expr::If(_) => "If",
+    Expr::Index(_) => "Index",
+    Expr::Infer(_) => "Infer",
+    Expr::Let(_) => "Let",
+    Expr::Lit(_) => "Lit",
+    Expr::Loop(_) => "Loop",
+    Expr::Macro(_) => "Macro",
+    Expr::Match(_) => "Match",
+    Expr::MethodCall(_) => "MethodCall",
+    Expr::Paren(_) => "Paren",
+    Expr::Path(_) => "Path",
+    Expr::Range(_) => "Range",
+    Expr::Reference(_) => "Reference",
+    Expr::Repeat(_) => "Repeat",
+    Expr::Return(_) => "Return",
+    Expr::Struct(_) => "Struct",
+    Expr::Try(_) => "Try",
+    Expr::TryBlock(_) => "TryBlock",
+    Expr::Tuple(_) => "Tuple",
+    Expr::Unary(_) => "Unary",
+    Expr::Unsafe(_) => "Unsafe",
+    Expr::Verbatim(_) => "Verbatim",
+    Expr::While(_) => "While",
+    Expr::Yield(_) => "Yield",
+    _ => "Unknown",
+  };
 }
 
 impl Parse for Element {
   fn parse(input: ParseStream) -> Result<Self> {
-    match input.peek(Token![<]) {
-      false => return Element::parse_literal(input),
-      true => return Element::parse_element(input),
-    };
+    if input.peek(Token![<]) {
+      return Element::parse_element(input);
+    }
+    if input.peek(Lit) {
+      return Element::parse_literal(input);
+    }
+    return Element::parse_expr(input);
   }
 }

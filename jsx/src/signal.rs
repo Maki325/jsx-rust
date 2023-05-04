@@ -1,34 +1,35 @@
-use crate::element::Updateable;
+use crate::updateable::Updateable;
+use std::{cell::RefCell, rc::Rc};
 
-// #[derive(Clone)]
-struct Signal<T: Clone> {
+pub struct Signal<T: ToString + Clone> {
   pub value: T,
-  // pub listeners: Vec<Box<dyn Fn(T)>>,
-  // pub listeners: Vec<Box<&'static dyn Updateable<T>>>,
-  // pub listeners: Vec<Box<&'static dyn Updateable<T>>>,
-  // pub listeners: Vec<Box<&'static Updateable<T>>>,
+  pub listeners: Vec<Rc<RefCell<dyn Updateable<T>>>>,
 }
 
-impl<T: Clone> Signal<T> {
+impl<T: ToString + Clone> Signal<T> {
   fn get(&self) -> T {
     return self.value.clone();
   }
   fn set(&mut self, val: T) {
-    self.value = val;
+    self.value = val.clone();
+
+    for listener in &self.listeners {
+      listener.borrow_mut().update(val.clone());
+    }
   }
 }
 
-pub struct GetSignal<T: Clone> {
-  signal: &'static Signal<T>,
+pub struct GetSignal<T: ToString + Clone> {
+  pub signal: Rc<RefCell<Signal<T>>>,
 }
-pub struct SetSignal<T: Clone> {
-  signal: Box<Signal<T>>,
+pub struct SetSignal<T: ToString + Clone> {
+  pub signal: Rc<RefCell<Signal<T>>>,
 }
 
 macro_rules! impl_get_functions {
   ($struct:ident, $function_name:ident) => {
     #[cfg(not(feature = "stable"))]
-    impl<T: Clone> FnOnce<()> for $struct<T> {
+    impl<T: ToString + Clone> FnOnce<()> for $struct<T> {
       type Output = T;
 
       // Required method
@@ -39,7 +40,7 @@ macro_rules! impl_get_functions {
     }
 
     #[cfg(not(feature = "stable"))]
-    impl<T: Clone> FnMut<()> for $struct<T> {
+    impl<T: ToString + Clone> FnMut<()> for $struct<T> {
       // Required method
       #[inline(always)]
       extern "rust-call" fn call_mut(&mut self, _args: ()) -> Self::Output {
@@ -48,7 +49,7 @@ macro_rules! impl_get_functions {
     }
 
     #[cfg(not(feature = "stable"))]
-    impl<T: Clone> Fn<()> for $struct<T> {
+    impl<T: ToString + Clone> Fn<()> for $struct<T> {
       // Required method
       #[inline(always)]
       extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
@@ -61,7 +62,7 @@ macro_rules! impl_get_functions {
 macro_rules! impl_set_functions {
   ($struct:ident, $function_name:ident) => {
     #[cfg(not(feature = "stable"))]
-    impl<T: Clone> FnOnce<(T,)> for $struct<T> {
+    impl<T: ToString + Clone> FnOnce<(T,)> for $struct<T> {
       type Output = ();
 
       // Required method
@@ -72,7 +73,7 @@ macro_rules! impl_set_functions {
     }
 
     #[cfg(not(feature = "stable"))]
-    impl<T: Clone> FnMut<(T,)> for $struct<T> {
+    impl<T: ToString + Clone> FnMut<(T,)> for $struct<T> {
       // Required method
       #[inline(always)]
       extern "rust-call" fn call_mut(&mut self, args: (T,)) -> Self::Output {
@@ -81,7 +82,7 @@ macro_rules! impl_set_functions {
     }
 
     #[cfg(not(feature = "stable"))]
-    impl<T: Clone> Fn<(T,)> for $struct<T> {
+    impl<T: ToString + Clone> Fn<(T,)> for $struct<T> {
       // Required method
       #[inline(always)]
       extern "rust-call" fn call(&self, args: (T,)) -> Self::Output {
@@ -94,37 +95,33 @@ macro_rules! impl_set_functions {
 impl_get_functions!(GetSignal, get);
 impl_set_functions!(SetSignal, set);
 
-impl<T: Clone> GetSignal<T> {
+impl<T: ToString + Clone> GetSignal<T> {
   pub fn get(&self) -> T {
-    // pub fn get(&self) -> () {
-    // self.value.clone()
-    return self.signal.value.clone();
+    return self.signal.borrow().get();
   }
 }
 
-impl<T: Clone> SetSignal<T> {
+impl<T: ToString + Clone> SetSignal<T> {
   pub fn set(&self, val: T) {
-    // self.value = val;
+    self.signal.borrow_mut().set(val);
   }
 
-  pub fn update<F>(&mut self, f: F)
+  pub fn update<F>(&self, f: F)
   where
     F: FnOnce(T) -> T,
   {
-    // self.value = f(self.value.clone());
+    let old_value = self.signal.borrow().get();
+    self.set(f(old_value));
   }
 }
 
-pub fn create_signal<T: Clone>(value: T) -> (GetSignal<T>, SetSignal<T>) {
-  // let signal: &'static mut Signal<T> = Box::leak(Box::new(Signal { value: value }));
-  let signal = Box::new(Signal {
+pub fn create_signal<T: ToString + Clone>(value: T) -> (GetSignal<T>, SetSignal<T>) {
+  let signal = Rc::new(RefCell::new(Signal {
     value: value,
-    // listeners: Vec::new(),
-  });
-  let signal: &'static mut Signal<T> = Box::leak(signal);
-  // let signal = Box::new(signal);
+    listeners: Vec::new(),
+  }));
 
-  let value = (
+  return (
     GetSignal {
       signal: signal.clone(),
     },
@@ -132,8 +129,4 @@ pub fn create_signal<T: Clone>(value: T) -> (GetSignal<T>, SetSignal<T>) {
       signal: signal.clone(),
     },
   );
-
-  std::mem::forget(signal);
-
-  return value;
 }
