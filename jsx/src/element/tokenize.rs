@@ -4,7 +4,11 @@ use quote::quote;
 impl Element {
   pub fn to_client_tokens(&self) -> proc_macro2::TokenStream {
     return match self {
-      Element::Element(ElementValue { name, children, .. }) => {
+      Element::Element(ElementValue {
+        name,
+        children,
+        attributes,
+      }) => {
         let children = children.iter().map(|child| match child {
           Element::Element(_) | Element::Literal(_) => {
             let child = child.to_client_tokens();
@@ -20,10 +24,15 @@ impl Element {
             }
           }
         });
+
+        let attributes = attributes
+          .iter()
+          .map(|attribute| attribute.to_client_tokens());
         quote! {
           {
             let element = document.create_element(#name)?;
             #(#children)*
+            #(#attributes)*
 
             element
           }
@@ -38,9 +47,9 @@ impl Element {
         let path = &path.0.path;
         quote! {
           {
-            let value: String = #path.get().to_string();
-            let text = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(value.as_str())));
-            count.signal.borrow_mut().listeners.push(text.clone());
+            let ___value___: String = #path().to_string();
+            let text = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(___value___.as_str())));
+            #path.signal.borrow_mut().listeners.push(text.clone());
             text.clone()
           }
         }

@@ -19,9 +19,12 @@ impl<T: ToString + Clone> Signal<T> {
   }
 }
 
+#[derive(Clone)]
 pub struct GetSignal<T: ToString + Clone> {
   pub signal: Rc<RefCell<Signal<T>>>,
 }
+
+#[derive(Clone)]
 pub struct SetSignal<T: ToString + Clone> {
   pub signal: Rc<RefCell<Signal<T>>>,
 }

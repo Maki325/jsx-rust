@@ -28,5 +28,7 @@ features = [
   'Node',
   'Text',
   'Window',
-  'console'
+  'console',
+  'EventListener',
+  'Event',
 ]
