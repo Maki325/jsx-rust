@@ -47,10 +47,9 @@ impl Element {
         let path = &path.0.path;
         quote! {
           {
-            let ___value___: String = #path().to_string();
-            let text = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(___value___.as_str())));
-            #path.signal.borrow_mut().listeners.push(text.clone());
-            text.clone()
+            let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(#path().to_string().as_str())));
+            #path.add_listener(___text___.clone());
+            ___text___.clone()
           }
         }
       }

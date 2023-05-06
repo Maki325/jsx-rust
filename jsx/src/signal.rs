@@ -19,14 +19,14 @@ impl<T: ToString + Clone> Signal<T> {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct GetSignal<T: ToString + Clone> {
-  pub signal: Rc<RefCell<Signal<T>>>,
+  pub signal: *mut Signal<T>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct SetSignal<T: ToString + Clone> {
-  pub signal: Rc<RefCell<Signal<T>>>,
+  pub signal: *mut Signal<T>,
 }
 
 macro_rules! impl_get_functions {
@@ -100,36 +100,41 @@ impl_set_functions!(SetSignal, set);
 
 impl<T: ToString + Clone> GetSignal<T> {
   pub fn get(&self) -> T {
-    return self.signal.borrow().get();
+    let signal = unsafe { self.signal.as_ref().expect("Signal should exist!") };
+    return signal.get();
+  }
+
+  pub fn add_listener<U>(&self, listener: Rc<RefCell<U>>)
+  where
+    U: Updateable<T> + 'static,
+  {
+    let signal = unsafe { self.signal.as_mut().expect("Signal should exist!") };
+    signal.listeners.push(listener);
   }
 }
 
 impl<T: ToString + Clone> SetSignal<T> {
   pub fn set(&self, val: T) {
-    self.signal.borrow_mut().set(val);
+    let signal = unsafe { self.signal.as_mut().expect("Signal should exist!") };
+    signal.set(val);
   }
 
   pub fn update<F>(&self, f: F)
   where
     F: FnOnce(T) -> T,
   {
-    let old_value = self.signal.borrow().get();
+    let signal = unsafe { self.signal.as_ref().expect("Signal should exist!") };
+    let old_value = signal.get();
     self.set(f(old_value));
   }
 }
 
 pub fn create_signal<T: ToString + Clone>(value: T) -> (GetSignal<T>, SetSignal<T>) {
-  let signal = Rc::new(RefCell::new(Signal {
+  let a = Box::new(Signal {
     value: value,
     listeners: Vec::new(),
-  }));
+  });
+  let signal = Box::leak(a);
 
-  return (
-    GetSignal {
-      signal: signal.clone(),
-    },
-    SetSignal {
-      signal: signal.clone(),
-    },
-  );
+  return (GetSignal { signal }, SetSignal { signal });
 }

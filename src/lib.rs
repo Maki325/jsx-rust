@@ -12,7 +12,7 @@ fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsVal
 
   let val = view! {
     <div>
-      "Hellooooo, How are you?a bcdefg"
+      "Hellooooo, How are you?a bcdefghi"
       <br/>
       <h1>3.14159265358</h1>
       <h2>"Seconds 1: "{count}</h2>
@@ -41,14 +41,9 @@ fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsVal
 fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
   let (value, set_value) = create_signal(0);
 
-  let set_value_clone = set_value.clone();
-  let clear = move |_| set_value_clone(0);
-
-  let set_value_clone = set_value.clone();
-  let decrement = move |_| set_value_clone.update(|value| value - 1);
-
-  let set_value_clone = set_value.clone();
-  let increment = move |_| set_value_clone.update(|value| value + 1);
+  let clear = move |_| set_value(0);
+  let decrement = move |_| set_value.update(|value| value - 1);
+  let increment = move |_| set_value.update(|value| value + 1);
 
   console::log_1(&"Start".into());
 
