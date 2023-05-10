@@ -1,61 +1,15 @@
 use super::{element::ElementValue, Element};
-use crate::attribute::Attribute;
+use crate::{attribute::Attribute, utils};
 use syn::{
   parse::{Parse, ParseStream},
   spanned::Spanned,
-  Block, Expr, Ident, Lit, Result, Stmt, Token,
+  Block, Expr, Lit, Result, Stmt, Token,
 };
-
-fn get_name(input: &ParseStream) -> Result<String> {
-  let mut name: Vec<String> = vec![];
-  let mut using_dash = false;
-  let mut using_colon = false;
-  let mut parse_ident = true;
-  loop {
-    if input.peek(Ident) {
-      if !parse_ident {
-        break;
-      }
-      parse_ident = false;
-      let ident: Ident = input.parse()?;
-      name.push(ident.to_string());
-      continue;
-    } else if input.peek(Token![-]) {
-      parse_ident = true;
-      if using_colon {
-        return Err(syn::Error::new(
-          input.span(),
-          "Cannot use - and :: in the same element name",
-        ));
-      }
-      using_dash = true;
-      input.parse::<Token![-]>()?;
-      name.push("-".to_string());
-      continue;
-    } else if input.peek(Token![::]) {
-      parse_ident = true;
-      if using_dash {
-        return Err(syn::Error::new(
-          input.span(),
-          "Cannot use - and :: in the same element name",
-        ));
-      }
-      using_colon = true;
-      input.parse::<Token![::]>()?;
-      name.push("::".to_string());
-      continue;
-    } else {
-      break;
-    }
-  }
-
-  return Ok(name.concat());
-}
 
 impl Element {
   fn parse_element(input: ParseStream) -> Result<Self> {
     input.parse::<Token![<]>()?;
-    let name: String = get_name(&input)?;
+    let name: String = utils::get_name(&input)?;
 
     let mut attributes = vec![];
 
@@ -93,7 +47,7 @@ impl Element {
 
     input.parse::<Token![<]>()?;
     input.parse::<Token![/]>()?;
-    let closing: String = get_name(&input)?;
+    let closing: String = utils::get_name(&input)?;
 
     if !closing.eq(&name) {
       return Err(syn::Error::new(
