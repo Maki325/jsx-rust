@@ -5,6 +5,7 @@ use web_sys::{console, Document, Event, HtmlElement, Window};
 
 struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
 
+#[allow(dead_code)]
 fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsValue> {
   let (count, set_count) = create_signal(0);
 
@@ -38,6 +39,28 @@ fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsVal
   Ok(())
 }
 
+#[allow(dead_code)]
+fn example_element_names(Info(_, document, body): Info) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  let val = view! {
+    <div>
+      <br/> <span-a>"Dash: <span-a>Dash</span-a>"</span-a>
+      <br/> <span:a>"Colon: <span:a>Colon</span:a>"</span:a>
+      <br/> <span::a>"Double colon: <span::a>Double colon</span::a>"</span::a>
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
+#[allow(dead_code)]
 fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
   let (value, set_value) = create_signal(0);
 
@@ -75,12 +98,14 @@ pub fn start() -> Result<(), JsValue> {
   let document = window.document().expect("should have a document on window");
   let body = document.body().expect("document should have a body");
 
-  example_second_ticker(Info(&window, &document, &body))?;
+  // example_second_ticker(Info(&window, &document, &body))?;
+  // example_element_names(Info(&window, &document, &body))?;
   example_counter(Info(&window, &document, &body))?;
 
   Ok(())
 }
 
+#[allow(dead_code)]
 fn set_interval(window: &web_sys::Window, f: &Closure<dyn FnMut()>, timeout_ms: i32) -> i32 {
   window
     .set_interval_with_callback_and_timeout_and_arguments_0(f.as_ref().unchecked_ref(), timeout_ms)

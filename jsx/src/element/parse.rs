@@ -1,102 +1,15 @@
 use super::{element::ElementValue, Element};
-use crate::attribute::Attribute;
+use crate::{attribute::Attribute, utils};
 use syn::{
   parse::{Parse, ParseStream},
   spanned::Spanned,
-  Block, Expr, Ident, Lit, Result, Stmt, Token,
+  Block, Expr, Lit, Result, Stmt, Token,
 };
-
-#[derive(PartialEq, Eq)]
-enum Separator {
-  None,
-  Colon,
-  DoubleColon,
-  Dash,
-}
-
-impl Separator {
-  fn allowed(self, allowed: Separator) -> bool {
-    if self == Separator::None {
-      return true;
-    }
-    return self == allowed;
-  }
-}
-
-fn get_name(input: &ParseStream) -> Result<String> {
-  let mut name: Vec<String> = vec![];
-  let mut separator = Separator::None;
-  let mut parse_ident = true;
-
-  macro_rules! peek_sep {
-    // ($token2:tt, $sep2:tt, $($token:path, $sep:tt),+) => {
-    //   $(if input.peek(Token![$token]) {
-    //     if !parse_ident {
-    //       return Err(syn::Error::new(
-    //         input.span(),
-    //         "Cannot have separator one after another!",
-    //       ));
-    //     }
-    //     parse_ident = true;
-    //     if separator.allowed(Separator::$sep) {
-    //       return Err(syn::Error::new(
-    //         input.span(),
-    //         "Cannot use - and :: in the same element name",
-    //       ));
-    //     }
-    //     separator = Separator::$sep;
-    //     input.parse::<Token![$token]>()?;
-    //     continue;
-    //   })*
-    //   peek_sep!($token2, $sep2)
-    // };
-    ($($token:tt, $sep:tt),+) => {
-      $(if input.peek(Token![$token]) {
-        if !parse_ident {
-          return Err(syn::Error::new(
-            input.span(),
-            "Cannot have separator one after another!",
-          ));
-        }
-        parse_ident = true;
-        if separator.allowed(Separator::$sep) {
-          return Err(syn::Error::new(
-            input.span(),
-            "Cannot use different separatos in the element name",
-          ));
-        }
-        separator = Separator::$sep;
-        input.parse::<Token![$token]>()?;
-        continue;
-      })*
-    };
-  }
-
-  loop {
-    if input.peek(Ident) {
-      if !parse_ident {
-        break;
-      }
-      parse_ident = false;
-      let ident: Ident = input.parse()?;
-      name.push(ident.to_string());
-      continue;
-    }
-    peek_sep!(
-      ::, DoubleColon,
-      -, Dash,
-      :, Colon
-    );
-    break;
-  }
-
-  return Ok(name.concat());
-}
 
 impl Element {
   fn parse_element(input: ParseStream) -> Result<Self> {
     input.parse::<Token![<]>()?;
-    let name: String = get_name(&input)?;
+    let name: String = utils::get_name(&input)?;
 
     let mut attributes = vec![];
 
@@ -134,7 +47,7 @@ impl Element {
 
     input.parse::<Token![<]>()?;
     input.parse::<Token![/]>()?;
-    let closing: String = get_name(&input)?;
+    let closing: String = utils::get_name(&input)?;
 
     if !closing.eq(&name) {
       return Err(syn::Error::new(

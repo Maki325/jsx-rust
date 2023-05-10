@@ -1,3 +1,5 @@
+use crate::utils;
+
 use super::{
   attribute::{AttributeType, ATTRIBUTE_NAME_MAP},
   Attribute, AttributeValue,
@@ -9,27 +11,17 @@ use syn::{
   Path, Result, Token,
 };
 
-fn path_to_string(path: &Path) -> String {
-  return path
-    .segments
-    .iter()
-    .map(|s| s.ident.to_string())
-    .collect::<Vec<String>>()
-    .join("::");
-}
-
 impl Attribute {
   fn parse(input: ParseStream) -> Result<Self> {
-    let path: Path = input.parse()?;
-    let name = path_to_string(&path);
+    let path = utils::get_name(&input)?;
 
-    let ty = ATTRIBUTE_NAME_MAP.get(&name.as_str());
+    let ty = ATTRIBUTE_NAME_MAP.get(&path.as_str());
     let (ty, name) = match ty {
       Some(ty) => ty,
       None => {
         return Err(syn::Error::new(
           path.span(),
-          format!("Unknown attribute name: {}", name),
+          format!("Unknown attribute name: {}", path),
         ))
       }
     };
