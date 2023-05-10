@@ -6,11 +6,72 @@ use syn::{
   Block, Expr, Ident, Lit, Result, Stmt, Token,
 };
 
+#[derive(PartialEq, Eq)]
+enum Separator {
+  None,
+  Colon,
+  DoubleColon,
+  Dash,
+}
+
+impl Separator {
+  fn allowed(self, allowed: Separator) -> bool {
+    if self == Separator::None {
+      return true;
+    }
+    return self == allowed;
+  }
+}
+
 fn get_name(input: &ParseStream) -> Result<String> {
   let mut name: Vec<String> = vec![];
-  let mut using_dash = false;
-  let mut using_colon = false;
+  let mut separator = Separator::None;
   let mut parse_ident = true;
+
+  macro_rules! peek_sep {
+    // ($token2:tt, $sep2:tt, $($token:path, $sep:tt),+) => {
+    //   $(if input.peek(Token![$token]) {
+    //     if !parse_ident {
+    //       return Err(syn::Error::new(
+    //         input.span(),
+    //         "Cannot have separator one after another!",
+    //       ));
+    //     }
+    //     parse_ident = true;
+    //     if separator.allowed(Separator::$sep) {
+    //       return Err(syn::Error::new(
+    //         input.span(),
+    //         "Cannot use - and :: in the same element name",
+    //       ));
+    //     }
+    //     separator = Separator::$sep;
+    //     input.parse::<Token![$token]>()?;
+    //     continue;
+    //   })*
+    //   peek_sep!($token2, $sep2)
+    // };
+    ($($token:tt, $sep:tt),+) => {
+      $(if input.peek(Token![$token]) {
+        if !parse_ident {
+          return Err(syn::Error::new(
+            input.span(),
+            "Cannot have separator one after another!",
+          ));
+        }
+        parse_ident = true;
+        if separator.allowed(Separator::$sep) {
+          return Err(syn::Error::new(
+            input.span(),
+            "Cannot use different separatos in the element name",
+          ));
+        }
+        separator = Separator::$sep;
+        input.parse::<Token![$token]>()?;
+        continue;
+      })*
+    };
+  }
+
   loop {
     if input.peek(Ident) {
       if !parse_ident {
@@ -20,33 +81,13 @@ fn get_name(input: &ParseStream) -> Result<String> {
       let ident: Ident = input.parse()?;
       name.push(ident.to_string());
       continue;
-    } else if input.peek(Token![-]) {
-      parse_ident = true;
-      if using_colon {
-        return Err(syn::Error::new(
-          input.span(),
-          "Cannot use - and :: in the same element name",
-        ));
-      }
-      using_dash = true;
-      input.parse::<Token![-]>()?;
-      name.push("-".to_string());
-      continue;
-    } else if input.peek(Token![::]) {
-      parse_ident = true;
-      if using_dash {
-        return Err(syn::Error::new(
-          input.span(),
-          "Cannot use - and :: in the same element name",
-        ));
-      }
-      using_colon = true;
-      input.parse::<Token![::]>()?;
-      name.push("::".to_string());
-      continue;
-    } else {
-      break;
     }
+    peek_sep!(
+      ::, DoubleColon,
+      -, Dash,
+      :, Colon
+    );
+    break;
   }
 
   return Ok(name.concat());
