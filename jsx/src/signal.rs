@@ -25,6 +25,19 @@ pub struct GetSignal<T: ToString + Clone> {
 }
 
 #[derive(Clone, Copy)]
+pub struct ConstGetSignal<T: ToString + Clone> {
+  pub value: T,
+}
+
+pub trait ReadSignal<T: ToString + Clone> {
+  fn get(&self) -> T;
+
+  fn add_listener<U>(&self, listener: Rc<RefCell<U>>)
+  where
+    U: Updateable<T> + 'static;
+}
+
+#[derive(Clone, Copy)]
 pub struct SetSignal<T: ToString + Clone> {
   pub signal: *mut Signal<T>,
 }
@@ -96,20 +109,33 @@ macro_rules! impl_set_functions {
 }
 
 impl_get_functions!(GetSignal, get);
+impl_get_functions!(ConstGetSignal, get);
 impl_set_functions!(SetSignal, set);
 
-impl<T: ToString + Clone> GetSignal<T> {
-  pub fn get(&self) -> T {
+impl<T: ToString + Clone> ReadSignal<T> for GetSignal<T> {
+  fn get(&self) -> T {
     let signal = unsafe { self.signal.as_ref().expect("Signal should exist!") };
     return signal.get();
   }
 
-  pub fn add_listener<U>(&self, listener: Rc<RefCell<U>>)
+  fn add_listener<U>(&self, listener: Rc<RefCell<U>>)
   where
     U: Updateable<T> + 'static,
   {
     let signal = unsafe { self.signal.as_mut().expect("Signal should exist!") };
     signal.listeners.push(listener);
+  }
+}
+
+impl<T: ToString + Clone> ReadSignal<T> for ConstGetSignal<T> {
+  fn get(&self) -> T {
+    return self.value.clone();
+  }
+
+  fn add_listener<U>(&self, _listener: Rc<RefCell<U>>)
+  where
+    U: Updateable<T> + 'static,
+  {
   }
 }
 
@@ -138,3 +164,22 @@ pub fn create_signal<T: ToString + Clone>(value: T) -> (GetSignal<T>, SetSignal<
 
   return (GetSignal { signal }, SetSignal { signal });
 }
+
+macro_rules! into_signals {
+  ($($from:ty),*) => {
+    $(
+      impl From<$from> for ConstGetSignal<$from> {
+        fn from(value: $from) -> Self {
+          return ConstGetSignal { value };
+        }
+      }
+    )*
+  };
+}
+
+into_signals!(
+  i8, i16, i32, i64, i128, isize, // signed
+  u8, u16, u32, u64, u128, usize, // unsigned
+  f32, f64, // floating point
+  bool, char, String
+);

@@ -89,6 +89,48 @@ fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
   return Ok(());
 }
 
+#[allow(dead_code)]
+fn ExampleComponent(
+  Info(_, document, body): Info,
+  /* , a: impl ReadSignal<i32> */
+) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  // create user interfaces with the declarative `view!` macro
+  let val = view! {
+    <div>
+      <span>"Value: " "!"</span>
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
+#[allow(dead_code)]
+fn example_component(Info(_, document, body): Info) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  let val = view! {
+    <div>
+      <ExampleComponent />
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
 // Called by our JS entry point to run the example
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
@@ -100,7 +142,8 @@ pub fn start() -> Result<(), JsValue> {
 
   // example_second_ticker(Info(&window, &document, &body))?;
   // example_element_names(Info(&window, &document, &body))?;
-  example_counter(Info(&window, &document, &body))?;
+  // example_counter(Info(&window, &document, &body))?;
+  example_component(Info(&window, &document, &body))?;
 
   Ok(())
 }

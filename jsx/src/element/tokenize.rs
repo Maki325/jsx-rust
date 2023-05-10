@@ -48,7 +48,7 @@ impl Element {
         quote! {
           {
             let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(#path().to_string().as_str())));
-            #path.add_listener(___text___.clone());
+            jsx::signal::ReadSignal::add_listener(&#path, ___text___.clone());
             ___text___.clone()
           }
         }
