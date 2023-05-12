@@ -195,12 +195,10 @@ pub trait IntoReadSignal<T: ToString + Clone, R> {
   fn into(self) -> R;
 }
 
-pub fn create_const_get_signal<T: ToString + Clone>(val: T) -> ConstGetSignal<T> {
-  return ConstGetSignal { value: val };
-}
-
-pub fn create_get_signal<T: ToString + Clone, R: ReadSignal<T>>(val: R) -> R {
-  return val.into();
+impl<T: ToString + Clone, R: ReadSignal<T>> IntoReadSignal<T, R> for R {
+  fn into(self) -> Self {
+    return self;
+  }
 }
 
 pub fn into_read_signal<T, R, I>(val: I) -> R
@@ -210,43 +208,6 @@ where
 {
   return val.into();
 }
-
-// fn a(document: Document) {
-//   let (get, _set) = create_signal(5);
-
-//   let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node("")));
-
-//   let q = into_read_signal(get);
-//   q.add_listener(___text___.clone());
-
-//   let const_get = ConstGetSignal { value: 8 };
-//   let const_q = into_read_signal(const_get);
-//   const_q.add_listener(___text___.clone());
-// }
-
-impl<T: ToString + Clone> IntoReadSignal<T, GetSignal<T>> for GetSignal<T> {
-  fn into(self) -> Self {
-    return self;
-  }
-}
-
-impl<T: ToString + Clone> IntoReadSignal<T, ConstGetSignal<T>> for ConstGetSignal<T> {
-  fn into(self) -> Self {
-    return self;
-  }
-}
-
-// impl IntoReadSignal<char, ConstGetSignal<char>> for char {
-//   fn into(self) -> ConstGetSignal<char> {
-//     return ConstGetSignal { value: self };
-//   }
-// }
-
-// impl IntoReadSignal<&'static str, ConstGetSignal<&'static str>> for &'static str {
-//   fn into(self) -> ConstGetSignal<&'static str> {
-//     return ConstGetSignal { value: self };
-//   }
-// }
 
 into_const_read_signal!(
   i8,

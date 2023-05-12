@@ -142,14 +142,14 @@ fn example_const_read_signals(Info(_, document, body): Info) -> Result<(), JsVal
 #[allow(dead_code, non_snake_case)]
 fn ExampleComponent(
   Info(_, document, body): Info,
-  /* , a: impl ReadSignal<i32> */
+  count: impl ReadSignal<i32>,
 ) -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
   // create user interfaces with the declarative `view!` macro
   let val = view! {
     <div>
-      <span>"Value: " "!"</span>
+      <span>"Value: " {count} "!"</span>
     </div>
   };
 
