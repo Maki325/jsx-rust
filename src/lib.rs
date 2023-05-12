@@ -1,9 +1,28 @@
-use jsx::signal::create_signal;
+use jsx::signal::{create_signal, ReadSignal};
 use jsx_macros::view;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, Document, Event, HtmlElement, Window};
 
 struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
+
+#[derive(Clone)]
+struct Test {
+  a: i32,
+  b: i32,
+}
+impl ToString for Test {
+  fn to_string(&self) -> String {
+    return format!("Test {{a: {} b: {}}}", self.a, self.b);
+  }
+}
+mod a {
+  use jsx::{
+    into_const_read_signal,
+    signal::{ConstGetSignal, IntoReadSignal},
+  };
+
+  into_const_read_signal!(crate::Test);
+}
 
 #[allow(dead_code)]
 fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsValue> {
@@ -89,6 +108,79 @@ fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
   return Ok(());
 }
 
+#[allow(dead_code)]
+fn example_const_read_signals(Info(_, document, body): Info) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  // For values like ints and floats
+  // We need to specify the exact type
+  // Because the compiler can't infer it exactly
+  // I.e.
+  // It doesn't know it it's a 8, 16, 32, 64 or a 128 bit int
+  let num: i32 = 5;
+
+  let static_str = "It works!";
+  let custon_struct = Test { a: 1, b: 2 };
+
+  let val = view! {
+    <div>
+      <span>"num: " {num}</span> <br/>
+      <span>"static_str: \"" {static_str} "\""</span> <br/>
+      <span>"custon_struct: " {custon_struct}</span> <br/>
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
+#[allow(dead_code, non_snake_case)]
+fn ExampleComponent(
+  Info(_, document, body): Info,
+  count: impl ReadSignal<i32>,
+) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  // create user interfaces with the declarative `view!` macro
+  let val = view! {
+    <div>
+      <span>"Value: " {count} "!"</span>
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
+#[allow(dead_code)]
+fn example_component(Info(_, document, body): Info) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  let val = view! {
+    <div>
+      <ExampleComponent />
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
 // Called by our JS entry point to run the example
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
@@ -100,7 +192,9 @@ pub fn start() -> Result<(), JsValue> {
 
   // example_second_ticker(Info(&window, &document, &body))?;
   // example_element_names(Info(&window, &document, &body))?;
-  example_counter(Info(&window, &document, &body))?;
+  // example_counter(Info(&window, &document, &body))?;
+  example_const_read_signals(Info(&window, &document, &body))?;
+  example_component(Info(&window, &document, &body))?;
 
   Ok(())
 }

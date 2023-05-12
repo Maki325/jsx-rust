@@ -47,8 +47,9 @@ impl Element {
         let path = &path.0.path;
         quote! {
           {
-            let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(#path().to_string().as_str())));
-            #path.add_listener(___text___.clone());
+            let ___signal___ = jsx::signal::into_read_signal(#path);
+            let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(___signal___.get().to_string().as_str())));
+            ___signal___.add_listener(___text___.clone());
             ___text___.clone()
           }
         }
