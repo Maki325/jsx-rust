@@ -2,6 +2,7 @@ use jsx::signal::{create_signal, ReadSignal};
 use jsx_macros::view;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, Document, Event, HtmlElement, Window};
+mod component;
 
 struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
 
@@ -127,29 +128,6 @@ fn example_const_read_signals(Info(_, document, body): Info) -> Result<(), JsVal
       <span>"num: " {num}</span> <br/>
       <span>"static_str: \"" {static_str} "\""</span> <br/>
       <span>"custon_struct: " {custon_struct}</span> <br/>
-    </div>
-  };
-
-  console::log_1(&"Created Element".into());
-
-  body.append_child(&val.into())?;
-
-  console::log_1(&"Appended Element".into());
-
-  return Ok(());
-}
-
-#[allow(dead_code, non_snake_case)]
-fn ExampleComponent(
-  Info(_, document, body): Info,
-  count: impl ReadSignal<i32>,
-) -> Result<(), JsValue> {
-  console::log_1(&"Start".into());
-
-  // create user interfaces with the declarative `view!` macro
-  let val = view! {
-    <div>
-      <span>"Value: " {count} "!"</span>
     </div>
   };
 
