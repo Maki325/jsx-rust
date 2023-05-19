@@ -8,6 +8,7 @@ impl Element {
         name,
         children,
         attributes,
+        is_custom: _,
       }) => {
         let children = children.iter().map(|child| match child {
           Element::Element(_) | Element::Literal(_) => {
@@ -59,7 +60,12 @@ impl Element {
 
   pub fn to_server_tokens(&self) -> proc_macro2::TokenStream {
     return match self {
-      Element::Element(ElementValue { name, children, .. }) => {
+      Element::Element(ElementValue {
+        name,
+        children,
+        is_custom,
+        ..
+      }) => {
         let children = children.iter().map(|child| child.to_server_tokens());
         quote! {
           jsx::element::Element::Element({
@@ -67,6 +73,7 @@ impl Element {
               name: #name.to_string(),
               attributes: Vec::new(),
               children: vec![#(#children),*],
+              is_custom: #is_custom,
             }
           })
         }

@@ -1,8 +1,10 @@
-use component::{Component, Prop, PropType};
+use component::{Component, PropType};
 use jsx::element::Element;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{parse_macro_input, ItemFn};
+use syn::{parse_macro_input, GenericArgument, ItemFn, PatIdent, PathArguments, Type};
+
+use crate::component::Prop;
 mod component;
 
 #[proc_macro]
@@ -41,122 +43,179 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
   //     .collect::<Vec<_>>()
   // );
   // println!("{:#?}", &body.to_token_stream());
-  let props_name = format_ident!("{name}Props");
+  let props_struct_name = format_ident!("{name}Props");
 
-  let (_, generics, where_clause) = &sig.generics.split_for_impl();
-
-  // let a = quote! {
-  //   #[allow(non_snake_case, clippy::too_many_arguments)]
-  //   #vis fn #name #generics (
-  //       #[allow(unused_variables)]
-  //       #scope_name: ::leptos::Scope,
-  //       props: #props_name #generics
-  //   ) #ret #(+ #lifetimes)*
-  //   #where_clause
-  //   #block
-  // };
+  let where_clause = &sig.generics.where_clause.as_ref();
 
   let stmts = &block.stmts;
-  let props_destructor = &props.iter().map(|prop| &prop.name).collect::<Vec<_>>();
 
-  // println!(
-  //   "props_destructor: {:#?}",
-  //   &props_destructor
-  //     .iter()
-  //     .map(|ident| ident.to_token_stream())
-  //     .collect::<Vec<_>>()
-  // );
+  fn get_generic_data(
+    props: &Vec<Prop>,
+  ) -> (
+    Vec<PatIdent>,
+    Vec<PatIdent>,
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::Ident>,
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::TokenStream>,
+  ) {
+    let mut names_and_types = vec![];
+    let mut names = vec![];
+    let mut required_names_and_types = vec![];
+    let mut required_names = vec![];
+    let mut generics_with_bounds = vec![];
+    let mut generic_names = vec![];
+    let mut phantom = vec![];
 
-  let props_generics_idents = &props
-    .iter()
-    .enumerate()
-    .filter(|(_, prop)| {
-      if let PropType::ReadSignal(_) = prop.ty {
-        true
-      } else {
-        false
-      }
-    })
-    .map(|(i, prop)| {
-      let generic = if let PropType::ReadSignal(t) = &prop.ty {
-        t.generic.clone()
-      } else {
-        unreachable!();
+    fn is_optional_type(ty: &Type) -> bool {
+      let path = match ty {
+        Type::Path(path) => &path.path,
+        _ => return false,
       };
 
-      return (format_ident!("___R___{i}___"), i, generic);
-      // let stream = quote! {
-      //   #ident: jsx::signal::ReadSignal<#generic>,
-      // };
-      // // println!("stream: {:#?}", &stream);
-      // return stream;
-
-      // return ty.generic.to_token_stream().into();
-    })
-    .collect::<Vec<_>>();
-
-  let props_generics = props_generics_idents
-    .iter()
-    .map(|(ident, i, generic)| {
-      let ident_into = format_ident!("{ident}{i}___");
-      quote! {
-        #ident: ReadSignal<#generic>,
-        #ident_into: jsx::signal::IntoReadSignal<#generic, #ident>,
+      if path.segments.len() != 1 {
+        return false;
       }
-    })
-    .collect::<Vec<_>>();
 
-  let props_generics_phantom_data = props_generics_idents
-    .iter()
-    .map(|(generic_ident, i, _)| {
-      let ident = format_ident!("phantom_{i}");
-      quote! {
-        #ident: std::marker::PhantomData<#generic_ident>,
-      }
-    })
-    .collect::<Vec<_>>();
+      let first_segment = match path.segments.first() {
+        Some(first_segment) => first_segment,
+        None => return false,
+      };
 
-  let props_generics_names = props_generics_idents
-    .iter()
-    .map(|(ident, i, _)| {
-      let ident_into = format_ident!("{ident}{i}___");
-      quote! {
-        #ident, #ident_into,
+      if first_segment.ident != "Option" {
+        return false;
       }
-    })
-    .collect::<Vec<_>>();
 
-  let props = props.iter().enumerate().map(|(i, prop)| {
-    let ty = match &prop.ty {
-      PropType::Type(ty) => quote! { #ty },
-      PropType::ReadSignal(_) => {
-        let ident = format_ident!("___R___{i}___{i}___");
-        quote! { #ident }
+      let angle_bracketed = match &first_segment.arguments {
+        PathArguments::AngleBracketed(angle_bracketed) => angle_bracketed,
+        _ => return false,
+      };
+
+      if angle_bracketed.args.len() != 1 {
+        return false;
       }
-    };
-    let name = &prop.name;
-    return quote! {
-      #name: #ty,
-    };
-  });
+
+      let first_generic_arg = match angle_bracketed.args.first() {
+        Some(first_generic_arg) => first_generic_arg,
+        None => return false,
+      };
+
+      return match first_generic_arg {
+        GenericArgument::Type(_) => true,
+        _ => false,
+      };
+    }
+
+    for prop in props {
+      let name = &prop.name;
+      let (ty, is_optional) = match &prop.ty {
+        PropType::Type(ty) => {
+          // match &ty {
+          //   Type::Array(_) => println!("Array!"),
+          //   Type::BareFn(_) => println!("BareFn!"),
+          //   Type::Group(_) => println!("Group!"),
+          //   Type::ImplTrait(_) => println!("ImplTrait!"),
+          //   Type::Infer(_) => println!("Infer!"),
+          //   Type::Macro(_) => println!("Macro!"),
+          //   Type::Never(_) => println!("Never!"),
+          //   Type::Paren(_) => println!("Paren!"),
+          //   Type::Path(_) => println!("Path!"),
+          //   Type::Ptr(_) => println!("Ptr!"),
+          //   Type::Reference(_) => println!("Reference!"),
+          //   Type::Slice(_) => println!("Slice!"),
+          //   Type::TraitObject(_) => println!("TraitObject!"),
+          //   Type::Tuple(_) => println!("Tuple!"),
+          //   Type::Verbatim(_) => println!("Verbatim!"),
+          //   _ => println!("Other!"),
+          // }
+
+          (quote! { #ty }, is_optional_type(&ty))
+        }
+        PropType::ReadSignal(ty) => {
+          let generic = &ty.generic;
+
+          let i = phantom.len();
+
+          let read_ident = format_ident!("___R___{i}___");
+          let into_read_ident = format_ident!("{read_ident}{i}___");
+
+          generic_names.push(read_ident.clone());
+          generic_names.push(into_read_ident.clone());
+
+          generics_with_bounds.push(quote! { #read_ident: ReadSignal<#generic> });
+          generics_with_bounds.push(quote! {
+            #into_read_ident: jsx::signal::IntoReadSignal<#generic, #read_ident>
+          });
+
+          let phantom_ident = format_ident!("___phantom_{i}___");
+          phantom.push(quote! {
+            #phantom_ident: std::marker::PhantomData<#read_ident>,
+          });
+
+          (quote! { #into_read_ident }, false)
+        }
+      };
+
+      if !is_optional {
+        required_names.push(name.clone());
+        required_names_and_types.push(quote! { #name: #ty, });
+      }
+
+      names.push(name.clone());
+      names_and_types.push(quote! { #name: #ty, });
+    }
+
+    return (
+      names,
+      required_names,
+      names_and_types,
+      required_names_and_types,
+      generic_names,
+      generics_with_bounds,
+      phantom,
+    );
+  }
+
+  let (
+    prop_names,
+    required_prop_names,
+    prop_names_and_types,
+    required_prop_names_and_types,
+    prop_generic_names,
+    prop_generics_with_bounds,
+    prop_phantom,
+  ) = get_generic_data(&props);
 
   let generics = &sig.generics.params;
 
+  let builder_struct_name = format_ident!("{props_struct_name}Builder");
   let a = quote! {
     #[allow(non_camel_case_types)]
-    struct #props_name<#(#props_generics),*> {
-      #(#props),*
-      #(#props_generics_phantom_data),*
+    pub struct #props_struct_name<#(#prop_generics_with_bounds),*> {
+      #(#prop_names_and_types)*
+      #(#prop_phantom)*
     }
 
-    #[allow(non_snake_case, clippy::too_many_arguments)]
-    #vis fn #name <#generics #(#props_generics),*> (
+    #[allow(non_camel_case_types)]
+    pub struct #builder_struct_name <#(#prop_generics_with_bounds),*> {
+      inter: #props_struct_name <#(#prop_generic_names),*>
+    }
+
+    #[allow(non_camel_case_types)]
+    impl <#(#prop_generics_with_bounds),*> #builder_struct_name <#(#prop_generic_names),*> {
+      fn new(#(#required_prop_names_and_types)*) {
+      }
+    }
+
+    #[allow(non_camel_case_types, non_snake_case, clippy::too_many_arguments)]
+    #vis fn #name <#generics #(#prop_generics_with_bounds),*> (
       document: &::web_sys::Document,
-      props: #props_name <#generics #(#props_generics_names),*>
+      props: #props_struct_name <#generics #(#prop_generic_names),*>
     ) #ret #(+ #lifetimes)*
     #where_clause
     {
-      let #props_name { #(#props_destructor),* ,.. } = props;
+      let #props_struct_name { #(#prop_names),* ,.. } = props;
       #(#stmts)*
     }
   };

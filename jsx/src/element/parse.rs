@@ -28,11 +28,10 @@ impl Element {
     input.parse::<Token![>]>()?;
 
     if self_closing {
-      return Ok(Element::Element(ElementValue {
-        name: name.to_string(),
+      return Ok(Element::Element(ElementValue::new_with_attributes(
+        name.to_string(),
         attributes,
-        children: vec![],
-      }));
+      )));
     }
 
     let mut children: Vec<Element> = vec![];
@@ -57,11 +56,9 @@ impl Element {
     }
     input.parse::<Token![>]>()?;
 
-    return Ok(Element::Element(ElementValue {
-      name: name.to_string(),
-      attributes,
-      children: children,
-    }));
+    return Ok(Element::Element(
+      ElementValue::new_with_attributes_and_children(name.to_string(), attributes, children),
+    ));
   }
 
   fn parse_literal(input: ParseStream) -> Result<Self> {

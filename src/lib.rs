@@ -173,6 +173,7 @@ pub fn start() -> Result<(), JsValue> {
   // example_counter(Info(&window, &document, &body))?;
   example_const_read_signals(Info(&window, &document, &body))?;
   example_component(Info(&window, &document, &body))?;
+  component::test(&document)?;
 
   Ok(())
 }

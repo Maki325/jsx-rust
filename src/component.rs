@@ -3,8 +3,14 @@ use jsx_macros::{component, view};
 use wasm_bindgen::JsValue;
 use web_sys::console;
 
+use crate::Info;
+
 #[component]
-pub fn ExampleComponent(count: dyn ReadSignal<i32>) -> Result<web_sys::Element, JsValue> {
+pub fn ExampleComponent(
+  count: dyn ReadSignal<i32>,
+  last_count: dyn ReadSignal<i32>,
+  some_opt_number: Option<i32>,
+) -> Result<web_sys::Element, JsValue> {
   console::log_1(&"Start".into());
 
   // create user interfaces with the declarative `view!` macro
@@ -15,21 +21,50 @@ pub fn ExampleComponent(count: dyn ReadSignal<i32>) -> Result<web_sys::Element, 
   });
 }
 
-pub fn test(document: &::web_sys::Document) {
+#[allow(dead_code)]
+fn example_component_test(Info(_, document, body): Info) -> Result<(), JsValue> {
+  console::log_1(&"Start".into());
+
+  let val = view! {
+    <div>
+      <span>"Our example component!"</span>
+      <br/>
+      <ExampleComponent />
+    </div>
+  };
+
+  console::log_1(&"Created Element".into());
+
+  body.append_child(&val.into())?;
+
+  console::log_1(&"Appended Element".into());
+
+  return Ok(());
+}
+
+pub fn test(document: &::web_sys::Document) -> Result<(), JsValue> {
   ExampleComponent(
     document,
     ExampleComponentProps {
       count: 5,
-      phantom_0: std::marker::PhantomData,
+      last_count: 3,
+      some_opt_number: None,
+      ___phantom_0___: std::marker::PhantomData,
+      ___phantom_1___: std::marker::PhantomData,
     },
-  );
+  )?;
 
   let (count, _set_count) = create_signal(0);
   ExampleComponent(
     document,
     ExampleComponentProps {
       count,
-      phantom_0: std::marker::PhantomData,
+      last_count: 3,
+      some_opt_number: None,
+      ___phantom_0___: std::marker::PhantomData,
+      ___phantom_1___: std::marker::PhantomData,
     },
-  );
+  )?;
+
+  Ok(())
 }
