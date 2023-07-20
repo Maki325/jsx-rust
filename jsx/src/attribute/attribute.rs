@@ -17,6 +17,7 @@ pub enum AttributeValue {
   Function(TokenStream),
 }
 
+#[allow(dead_code)]
 pub enum AttributeType {
   String,
   Number,

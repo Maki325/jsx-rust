@@ -3,6 +3,7 @@ use jsx_macros::view;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, Document, Event, HtmlElement, Window};
 mod component;
+mod component_expanded;
 
 struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
 
@@ -174,6 +175,7 @@ pub fn start() -> Result<(), JsValue> {
   example_const_read_signals(Info(&window, &document, &body))?;
   example_component(Info(&window, &document, &body))?;
   component::test(&document)?;
+  component::example(&document)?;
 
   Ok(())
 }

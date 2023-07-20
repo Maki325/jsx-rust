@@ -1,0 +1,7 @@
+Sooo
+
+When trying to create the custom Component element
+Make all values Optional, but remember the actually required ones
+Then have methods like `set_${attribute_name}(attribute_value)`, to set the value
+Then call the `check` method, which checks if all required attributes are NOT `None`
+If it passes, build it to props (maybe put `check` in build?) and mount the component

@@ -29,20 +29,13 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
     body,
     props,
   } = parse_macro_input!(s as Component);
-  let lifetimes = body.sig.generics.lifetimes();
-
   let ItemFn {
     vis, sig, block, ..
   } = &body;
 
-  // println!(
-  //   "{:#?}",
-  //   &attrs
-  //     .iter()
-  //     .map(|attr| attr.to_token_stream())
-  //     .collect::<Vec<_>>()
-  // );
-  // println!("{:#?}", &body.to_token_stream());
+  let lifetimes = sig.generics.lifetimes();
+  let lifetimes2 = sig.generics.lifetimes();
+
   let props_struct_name = format_ident!("{name}Props");
 
   let where_clause = &sig.generics.where_clause.as_ref();
@@ -179,7 +172,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
 
   let (
     prop_names,
-    required_prop_names,
+    _required_prop_names,
     prop_names_and_types,
     required_prop_names_and_types,
     prop_generic_names,
@@ -190,6 +183,8 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
   let generics = &sig.generics.params;
 
   let builder_struct_name = format_ident!("{props_struct_name}Builder");
+  let name_inner = format_ident!("{name}Inner");
+
   let a = quote! {
     #[allow(non_camel_case_types)]
     pub struct #props_struct_name<#(#prop_generics_with_bounds),*> {
@@ -208,7 +203,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
       }
     }
 
-    #[allow(non_camel_case_types, non_snake_case, clippy::too_many_arguments)]
+    #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments)]
     #vis fn #name <#generics #(#prop_generics_with_bounds),*> (
       document: &::web_sys::Document,
       props: #props_struct_name <#generics #(#prop_generic_names),*>
@@ -216,7 +211,20 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
     #where_clause
     {
       let #props_struct_name { #(#prop_names),* ,.. } = props;
-      #(#stmts)*
+
+      // #({let _ = &#prop_names;})*
+
+      #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments)]
+      #vis fn #name_inner <#generics #(#prop_generics_with_bounds),*> (
+        document: &::web_sys::Document,
+        #(#prop_names_and_types)*
+      ) #ret #(+ #lifetimes2)*
+      #where_clause
+      {
+        #(#stmts)*
+      }
+
+      return #name_inner(document, #(#prop_names),*);
     }
   };
 

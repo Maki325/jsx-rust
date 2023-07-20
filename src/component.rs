@@ -6,14 +6,30 @@ use web_sys::console;
 use crate::Info;
 
 #[component]
-pub fn ExampleComponent(
-  count: dyn ReadSignal<i32>,
-  last_count: dyn ReadSignal<i32>,
+pub fn TestComponent(
+  count: dyn IntoReadSignal<i32>,
+  last_count: dyn IntoReadSignal<i32>,
+  some_number: i32,
   some_opt_number: Option<i32>,
 ) -> Result<web_sys::Element, JsValue> {
   console::log_1(&"Start".into());
 
-  // create user interfaces with the declarative `view!` macro
+  // let some_number = some_opt_number.unwrap_or(0);
+
+  return Ok(view! {
+    <div>
+      <span>"Value: " {count} "!"</span>
+      <span>"Value: " {some_number} "!"</span>
+    </div>
+  });
+}
+
+#[component]
+pub fn ExampleComponent(count: dyn IntoReadSignal<i32>) -> Result<web_sys::Element, JsValue> {
+  console::log_1(&"Start".into());
+
+  // let some_number = some_opt_number.unwrap_or(0);
+
   return Ok(view! {
     <div>
       <span>"Value: " {count} "!"</span>
@@ -43,11 +59,12 @@ fn example_component_test(Info(_, document, body): Info) -> Result<(), JsValue> 
 }
 
 pub fn test(document: &::web_sys::Document) -> Result<(), JsValue> {
-  ExampleComponent(
+  TestComponent(
     document,
-    ExampleComponentProps {
+    TestComponentProps {
       count: 5,
       last_count: 3,
+      some_number: 7,
       some_opt_number: None,
       ___phantom_0___: std::marker::PhantomData,
       ___phantom_1___: std::marker::PhantomData,
@@ -55,14 +72,27 @@ pub fn test(document: &::web_sys::Document) -> Result<(), JsValue> {
   )?;
 
   let (count, _set_count) = create_signal(0);
-  ExampleComponent(
+  TestComponent(
     document,
-    ExampleComponentProps {
+    TestComponentProps {
       count,
       last_count: 3,
+      some_number: 7,
       some_opt_number: None,
       ___phantom_0___: std::marker::PhantomData,
       ___phantom_1___: std::marker::PhantomData,
+    },
+  )?;
+
+  Ok(())
+}
+
+pub fn example(document: &::web_sys::Document) -> Result<(), JsValue> {
+  ExampleComponent(
+    document,
+    ExampleComponentProps {
+      count: 5,
+      ___phantom_0___: std::marker::PhantomData,
     },
   )?;
 

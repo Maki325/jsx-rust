@@ -76,7 +76,7 @@ fn get_prop_type(ty: Type) -> PropType {
       _ => continue,
     };
     for segment in &trait_bound.path.segments {
-      if !segment.ident.eq("ReadSignal") {
+      if !segment.ident.eq("ReadSignal") && !segment.ident.eq("IntoReadSignal") {
         continue;
       }
       let ab = if let PathArguments::AngleBracketed(ab) = &segment.arguments {
