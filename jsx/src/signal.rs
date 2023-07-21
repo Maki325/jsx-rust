@@ -31,6 +31,10 @@ pub struct ConstGetSignal<T: ToString + Clone> {
 
 pub trait ReadSignal<T: ToString + Clone> {
   fn get(&self) -> T;
+
+  fn add_listener<U>(&self, listener: Rc<RefCell<U>>)
+  where
+    U: Updateable<T> + 'static;
 }
 
 #[derive(Clone, Copy)]
