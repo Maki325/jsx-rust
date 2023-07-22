@@ -38,14 +38,14 @@ pub fn ExampleComponent(count: dyn IntoReadSignal<i32>) -> Result<web_sys::Eleme
 }
 
 #[allow(dead_code)]
-fn example_component_test(Info(_, document, body): Info) -> Result<(), JsValue> {
+pub fn example_component_test(Info(_, document, body): Info) -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
   let val = view! {
     <div>
       <span>"Our example component!"</span>
       <br/>
-      <ExampleComponent />
+      <ExampleComponent count=5 />
     </div>
   };
 

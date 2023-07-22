@@ -13,7 +13,12 @@ impl Attribute {
           closure.forget();
         }
       }
-      _ => unimplemented!(),
+      AttributeValue::Custom(expr) => {
+        quote! {
+          element.set_attribute(#name, &#expr.to_string())?;
+        }
+      }
+      _ => unimplemented!("Attribute::to_client_tokens"),
     };
   }
 

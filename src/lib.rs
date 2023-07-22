@@ -5,7 +5,9 @@ use web_sys::{console, Document, Event, HtmlElement, Window};
 mod component;
 mod component_expanded;
 
-struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
+use component::*;
+
+pub struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
 
 #[derive(Clone)]
 struct Test {
@@ -147,7 +149,7 @@ fn example_component(Info(_, document, body): Info) -> Result<(), JsValue> {
 
   let val = view! {
     <div>
-      <ExampleComponent />
+      <ExampleComponent count=5 />
     </div>
   };
 
@@ -157,6 +159,13 @@ fn example_component(Info(_, document, body): Info) -> Result<(), JsValue> {
 
   console::log_1(&"Appended Element".into());
 
+  return Ok(());
+}
+
+#[allow(dead_code)]
+fn hr(Info(_, document, body): Info) -> Result<(), JsValue> {
+  let val = view! { <hr/> };
+  body.append_child(&val.into())?;
   return Ok(());
 }
 
@@ -172,10 +181,14 @@ pub fn start() -> Result<(), JsValue> {
   // example_second_ticker(Info(&window, &document, &body))?;
   // example_element_names(Info(&window, &document, &body))?;
   // example_counter(Info(&window, &document, &body))?;
-  example_const_read_signals(Info(&window, &document, &body))?;
+  // example_const_read_signals(Info(&window, &document, &body))?;
   example_component(Info(&window, &document, &body))?;
-  component::test(&document)?;
-  component::example(&document)?;
+
+  hr(Info(&window, &document, &body))?;
+
+  // component::test(&document)?;
+  // component::example(&document)?;
+  component::example_component_test(Info(&window, &document, &body))?;
 
   Ok(())
 }
