@@ -8,8 +8,8 @@ impl Attribute {
     return match &self.value {
       AttributeValue::Function(func) => {
         quote! {
-          let closure: Closure<dyn FnMut(Event)> = Closure::new(#func);
-          element.add_event_listener_with_callback(#name, closure.as_ref().unchecked_ref())?;
+          let closure: wasm_bindgen::closure::Closure<dyn FnMut(Event)> = wasm_bindgen::closure::Closure::new(#func);
+          element.add_event_listener_with_callback(#name, wasm_bindgen::JsCast::unchecked_ref(closure.as_ref()))?;
           closure.forget();
         }
       }

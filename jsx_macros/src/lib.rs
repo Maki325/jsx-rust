@@ -2,7 +2,9 @@ use component::{Component, PropType};
 use jsx::element::Element;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, GenericArgument, ItemFn, PatIdent, PathArguments, Type};
+use syn::{
+  parse_macro_input, GenericArgument, GenericParam, ItemFn, PatIdent, PathArguments, Type,
+};
 
 use crate::component::Prop;
 mod component;
@@ -53,8 +55,6 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
     props: &Vec<Prop>,
   ) -> (
     Vec<PatIdent>,
-    Vec<PatIdent>,
-    Vec<proc_macro2::TokenStream>,
     Vec<proc_macro2::TokenStream>,
     Vec<proc_macro2::Ident>,
     Vec<proc_macro2::TokenStream>,
@@ -63,8 +63,6 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
   ) {
     let mut names_and_types = vec![];
     let mut names = vec![];
-    let mut required_names_and_types = vec![];
-    let mut required_names = vec![];
     let mut generics_with_bounds = vec![];
     let mut generic_names = vec![];
     let mut phantom = vec![];
@@ -145,16 +143,10 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
 
       prop_struct_fields.push(PropField {
         name: name.clone(),
-        // ty: prop.ty.clone(),
         ty: ty.clone(),
         is_optional,
         phantom: phantom_option,
       });
-
-      if !is_optional {
-        required_names.push(name.clone());
-        required_names_and_types.push(quote! { #name: #ty, });
-      }
 
       names.push(name.clone());
       names_and_types.push(quote! { #name: #ty, });
@@ -162,9 +154,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
 
     return (
       names,
-      required_names,
       names_and_types,
-      required_names_and_types,
       generic_names,
       generics_with_bounds,
       phantom,
@@ -174,21 +164,48 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
 
   let (
     prop_names,
-    _required_prop_names,
     prop_names_and_types,
-    required_prop_names_and_types,
     prop_generic_names,
     prop_generics_with_bounds,
     prop_phantom,
     prop_struct_fields,
   ) = get_generic_data(&props);
 
-  // let props_struct = create_prop_struct(&prop_struct_fields);
-
   let generics = &sig.generics.params;
 
   let builder_struct_name = format_ident!("{props_struct_name}Builder");
   let name_inner = format_ident!("{name}Inner");
+
+  let all_generic_names = {
+    let mut stream = proc_macro2::TokenStream::new();
+
+    stream.extend(Some(quote! {#(#prop_generic_names),*}));
+    if generics.len() != 0 {
+      stream.extend(Some(quote! {,}));
+    }
+
+    let generic_names = &generics
+      .iter()
+      .map(|generic| match generic {
+        GenericParam::Type(ty) => &ty.ident,
+        _ => unimplemented!("Only type generics are supported"),
+      })
+      .collect::<Vec<_>>();
+    stream.extend(Some(quote! {#(#generic_names),*}));
+
+    stream
+  };
+  let all_generics_with_bounds = {
+    let mut stream = proc_macro2::TokenStream::new();
+
+    stream.extend(Some(quote! {#(#prop_generics_with_bounds),*}));
+    if generics.len() != 0 {
+      stream.extend(Some(quote! {,}));
+    }
+    stream.extend(Some(quote! {#generics}));
+
+    stream
+  };
 
   let props_struct = {
     let mut builder_fields = vec![];
@@ -216,6 +233,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
       if *is_optional {
         builder_fields.push(quote! { #name: #ty, });
         builder_fns.push(quote! {
+          #[allow(non_camel_case_types, dead_code)]
           pub fn #fn_name(&mut self, #name: #ty) -> &mut Self {
             self.#name = #name;
             self
@@ -230,6 +248,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
           #name: Option<#ty>,
         });
         builder_fns.push(quote! {
+          #[allow(non_camel_case_types, dead_code)]
           pub fn #fn_name(&mut self, #name: #ty) -> &mut Self {
             self.#name = Some(#name);
 
@@ -256,26 +275,27 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
     }
 
     let struct_tokens = quote! {
-      #[allow(non_camel_case_types)]
-      pub struct #props_struct_name<#(#prop_generics_with_bounds),*> {
+      #[allow(non_camel_case_types, dead_code)]
+      pub struct #props_struct_name<#all_generics_with_bounds> {
         #(#prop_names_and_types)*
         #(#prop_phantom)*
       }
 
-      #[allow(non_camel_case_types)]
-      pub struct #builder_struct_name <#(#prop_generics_with_bounds),*> {
+      #[allow(non_camel_case_types, dead_code)]
+      pub struct #builder_struct_name <#all_generics_with_bounds> {
         #(#builder_fields)*
       }
 
-      #[allow(non_camel_case_types)]
-      impl <#(#prop_generics_with_bounds),*> #builder_struct_name <#(#prop_generic_names),*> {
-        pub fn new() -> #builder_struct_name <#generics #(#prop_generic_names),*> {
+      #[allow(non_camel_case_types, dead_code)]
+      impl <#all_generics_with_bounds> #builder_struct_name <#all_generic_names> {
+        pub fn new() -> #builder_struct_name <#all_generic_names> {
           #builder_struct_name {
             #(#builder_new),*
           }
         }
 
-        pub fn build(self) -> Result<#props_struct_name <#generics #(#prop_generic_names),*>, &'static str> {
+        #[allow(dead_code)]
+        pub fn build(self) -> Result<#props_struct_name <#all_generic_names>, &'static str> {
           #(#build_required)*
 
           let #builder_struct_name { #(#build_destructuring)* .. } = self;
@@ -295,19 +315,17 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
   let a = quote! {
     #props_struct
 
-    #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments)]
-    #vis fn #name <#generics #(#prop_generics_with_bounds),*> (
+    #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments, dead_code)]
+    #vis fn #name <#all_generics_with_bounds> (
       document: &::web_sys::Document,
-      props: #props_struct_name <#generics #(#prop_generic_names),*>
+      props: #props_struct_name <#all_generic_names>
     ) #ret #(+ #lifetimes)*
     #where_clause
     {
       let #props_struct_name { #(#prop_names),* ,.. } = props;
 
-      // #({let _ = &#prop_names;})*
-
       #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments)]
-      #vis fn #name_inner <#generics #(#prop_generics_with_bounds),*> (
+      #vis fn #name_inner <#all_generics_with_bounds> (
         document: &::web_sys::Document,
         #(#prop_names_and_types)*
       ) #ret #(+ #lifetimes2)*

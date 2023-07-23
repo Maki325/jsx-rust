@@ -1,7 +1,6 @@
 use convert_case::{Case::Pascal, Casing};
 use proc_macro2::Ident;
 use proc_macro_error::abort;
-use quote::ToTokens;
 use syn::{
   parse::{Parse, ParseStream},
   punctuated::Punctuated,
@@ -57,7 +56,6 @@ pub enum PropType {
 }
 
 pub struct Prop {
-  // prop_opts: PropOpt,
   pub name: PatIdent,
   pub ty: PropType,
 }
@@ -115,10 +113,6 @@ impl Prop {
 
     let ty = get_prop_type(ty);
 
-    Self {
-      // prop_opts,
-      name,
-      ty,
-    }
+    Self { name, ty }
   }
 }
