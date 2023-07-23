@@ -182,7 +182,7 @@ macro_rules! into_const_read_signal {
       }
 
       impl IntoReadSignal<$from, ConstGetSignal<$from>> for $from {
-        fn into(self) -> ConstGetSignal<$from> {
+        fn into_read_signal(self) -> ConstGetSignal<$from> {
           return ConstGetSignal { value: self };
         }
       }
@@ -192,11 +192,11 @@ macro_rules! into_const_read_signal {
 pub use into_const_read_signal;
 
 pub trait IntoReadSignal<T: ToString + Clone, R> {
-  fn into(self) -> R;
+  fn into_read_signal(self) -> R;
 }
 
 impl<T: ToString + Clone, R: ReadSignal<T>> IntoReadSignal<T, R> for R {
-  fn into(self) -> Self {
+  fn into_read_signal(self) -> Self {
     return self;
   }
 }
@@ -206,7 +206,7 @@ where
   T: ToString + Clone,
   I: IntoReadSignal<T, R>,
 {
-  return val.into();
+  return val.into_read_signal();
 }
 
 into_const_read_signal!(

@@ -1,6 +1,8 @@
 use lazy_static::lazy_static;
 use proc_macro2::TokenStream;
-use std::collections::HashMap;
+use quote::ToTokens;
+use std::{collections::HashMap, fmt};
+use syn::Expr;
 
 #[derive(Debug)]
 pub struct Attribute {
@@ -9,19 +11,31 @@ pub struct Attribute {
   pub value: AttributeValue,
 }
 
-#[derive(Debug)]
 pub enum AttributeValue {
   String(String),
   Number(f64),
   Boolean(bool),
   Function(TokenStream),
+  Custom(Expr),
+  EndOfAttributes,
 }
 
+impl fmt::Debug for AttributeValue {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    return match self {
+      Self::Custom(expr) => write!(f, "Custom {:#?}", expr.clone().into_token_stream()),
+      others => others.fmt(f),
+    };
+  }
+}
+
+#[allow(dead_code)]
 pub enum AttributeType {
   String,
   Number,
   Boolean,
   Function,
+  Custom,
 }
 
 lazy_static! {

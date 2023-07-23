@@ -1,38 +1,71 @@
 use super::{element::ElementValue, Element};
-use crate::{attribute::Attribute, utils};
+use crate::{
+  attribute::{Attribute, AttributeValue},
+  utils,
+};
+use proc_macro2::{TokenStream, TokenTree};
 use syn::{
-  parse::{Parse, ParseStream},
+  parse::{Parse, ParseStream, Parser},
   spanned::Spanned,
   Block, Expr, Lit, Result, Stmt, Token,
 };
 
 impl Element {
+  fn tag_close(input: ParseStream) -> Result<bool> {
+    let self_closing = input.parse::<Option<Token![/]>>()?.is_some();
+    input.parse::<Token![>]>()?;
+
+    return Ok(self_closing);
+  }
+
+  fn attributes(input: ParseStream) -> Result<Vec<Attribute>> {
+    let mut attributes = vec![];
+    loop {
+      if input.is_empty() {
+        return Ok(attributes);
+      }
+
+      let attribute: Attribute = input.parse()?;
+      if let AttributeValue::EndOfAttributes = attribute.value {
+        return Ok(attributes);
+      }
+      attributes.push(attribute);
+    }
+  }
+
   fn parse_element(input: ParseStream) -> Result<Self> {
     input.parse::<Token![<]>()?;
     let name: String = utils::get_name(&input)?;
 
-    let mut attributes = vec![];
+    let mut attributes = TokenStream::new();
 
-    loop {
-      let attribute: Attribute = match input.parse() {
-        Ok(attribute) => attribute,
-        Err(_) => break,
-      };
-      attributes.push(attribute);
-    }
+    let self_closing = loop {
+      if let Ok(self_closing) = Element::tag_close(&input) {
+        break self_closing;
+      }
 
-    let self_closing = input.peek(Token![/]);
+      if input.is_empty() {
+        return Err(syn::Error::new(
+          input.span(),
+          "Expected a closing (>) or a self-closing (/>) tag",
+        ));
+      }
+
+      attributes.extend(Some(input.parse::<TokenTree>()?));
+    };
+
+    let attributes = if attributes.is_empty() {
+      vec![]
+    } else {
+      let parser = move |input: ParseStream| Element::attributes(input);
+      parser.parse2(attributes)?
+    };
+
     if self_closing {
-      input.parse::<Token![/]>()?;
-    }
-    input.parse::<Token![>]>()?;
-
-    if self_closing {
-      return Ok(Element::Element(ElementValue {
-        name: name.to_string(),
+      return Ok(Element::Element(ElementValue::new_with_attributes(
+        name.to_string(),
         attributes,
-        children: vec![],
-      }));
+      )));
     }
 
     let mut children: Vec<Element> = vec![];
@@ -57,11 +90,9 @@ impl Element {
     }
     input.parse::<Token![>]>()?;
 
-    return Ok(Element::Element(ElementValue {
-      name: name.to_string(),
-      attributes,
-      children: children,
-    }));
+    return Ok(Element::Element(
+      ElementValue::new_with_attributes_and_children(name.to_string(), attributes, children),
+    ));
   }
 
   fn parse_literal(input: ParseStream) -> Result<Self> {

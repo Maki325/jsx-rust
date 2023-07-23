@@ -1,9 +1,13 @@
-use jsx::signal::{create_signal, ReadSignal};
+use jsx::{
+  mount_to_body,
+  signal::{create_signal, ReadSignal},
+};
 use jsx_macros::view;
 use wasm_bindgen::prelude::*;
-use web_sys::{console, Document, Event, HtmlElement, Window};
+use web_sys::{console, Event};
+mod component;
 
-struct Info<'a>(&'a Window, &'a Document, &'a HtmlElement);
+use component::*;
 
 #[derive(Clone)]
 struct Test {
@@ -25,12 +29,16 @@ mod a {
 }
 
 #[allow(dead_code)]
-fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsValue> {
+fn example_second_ticker() -> Result<(), JsValue> {
   let (count, set_count) = create_signal(0);
 
   console::log_1(&"Start".into());
 
-  let val = view! {
+  let window = web_sys::window().expect("no global `window` exists");
+  let document = &window.document().expect("should have a document on window");
+  let body = document.body().expect("document should have a body");
+
+  let el = view! {
     <div>
       "Hellooooo, How are you?a bcdefghi"
       <br/>
@@ -40,9 +48,7 @@ fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsVal
     </div>
   };
 
-  console::log_1(&"Created Element".into());
-
-  body.append_child(&val.into())?;
+  body.append_child(&el)?;
 
   console::log_1(&"Appended Element".into());
 
@@ -51,6 +57,7 @@ fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsVal
     set_count.update(|x| x + 1);
     console::log_1(&"Updated Element".into());
   });
+
   let interval_id = set_interval(&window, &cb, 1000);
   console::log_2(&"Set interval:".into(), &interval_id.into());
   cb.forget();
@@ -59,20 +66,16 @@ fn example_second_ticker(Info(window, document, body): Info) -> Result<(), JsVal
 }
 
 #[allow(dead_code)]
-fn example_element_names(Info(_, document, body): Info) -> Result<(), JsValue> {
+fn example_element_names() -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
-  let val = view! {
+  mount_to_body!({
     <div>
       <br/> <span-a>"Dash: <span-a>Dash</span-a>"</span-a>
       <br/> <span:a>"Colon: <span:a>Colon</span:a>"</span:a>
       <br/> <span::a>"Double colon: <span::a>Double colon</span::a>"</span::a>
     </div>
-  };
-
-  console::log_1(&"Created Element".into());
-
-  body.append_child(&val.into())?;
+  });
 
   console::log_1(&"Appended Element".into());
 
@@ -80,7 +83,7 @@ fn example_element_names(Info(_, document, body): Info) -> Result<(), JsValue> {
 }
 
 #[allow(dead_code)]
-fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
+fn example_counter() -> Result<(), JsValue> {
   let (value, set_value) = create_signal(0);
 
   let clear = move |_| set_value(0);
@@ -90,18 +93,14 @@ fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
   // create user interfaces with the declarative `view!` macro
-  let val = view! {
+  mount_to_body!({
     <div>
       <button on::click=clear>"Clear"</button>
       <button on::click=decrement>"-1"</button>
       <span>"Value: " {value} "!"</span>
       <button on::click=increment>"+1"</button>
     </div>
-  };
-
-  console::log_1(&"Created Element".into());
-
-  body.append_child(&val.into())?;
+  });
 
   console::log_1(&"Appended Element".into());
 
@@ -109,10 +108,10 @@ fn example_counter(Info(_, document, body): Info) -> Result<(), JsValue> {
 }
 
 #[allow(dead_code)]
-fn example_const_read_signals(Info(_, document, body): Info) -> Result<(), JsValue> {
+fn example_const_read_signals() -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
-  // For values like ints and floats
+  // For values like ints and floatss
   // We need to specify the exact type
   // Because the compiler can't infer it exactly
   // I.e.
@@ -120,42 +119,17 @@ fn example_const_read_signals(Info(_, document, body): Info) -> Result<(), JsVal
   let num: i32 = 5;
 
   let static_str = "It works!";
+  let string = String::from("STRIIIINNNGGG!!");
   let custon_struct = Test { a: 1, b: 2 };
 
-  let val = view! {
+  mount_to_body!({
     <div>
       <span>"num: " {num}</span> <br/>
       <span>"static_str: \"" {static_str} "\""</span> <br/>
+      <span>"string: \"" {string} "\""</span> <br/>
       <span>"custon_struct: " {custon_struct}</span> <br/>
     </div>
-  };
-
-  console::log_1(&"Created Element".into());
-
-  body.append_child(&val.into())?;
-
-  console::log_1(&"Appended Element".into());
-
-  return Ok(());
-}
-
-#[allow(dead_code, non_snake_case)]
-fn ExampleComponent(
-  Info(_, document, body): Info,
-  count: impl ReadSignal<i32>,
-) -> Result<(), JsValue> {
-  console::log_1(&"Start".into());
-
-  // create user interfaces with the declarative `view!` macro
-  let val = view! {
-    <div>
-      <span>"Value: " {count} "!"</span>
-    </div>
-  };
-
-  console::log_1(&"Created Element".into());
-
-  body.append_child(&val.into())?;
+  });
 
   console::log_1(&"Appended Element".into());
 
@@ -163,38 +137,54 @@ fn ExampleComponent(
 }
 
 #[allow(dead_code)]
-fn example_component(Info(_, document, body): Info) -> Result<(), JsValue> {
+fn example_component() -> Result<(), JsValue> {
+  let (value, set_value) = create_signal(0);
+
+  let clear = move |_| {
+    set_value(if value.get() == 5 { 0 } else { 5 });
+  };
   console::log_1(&"Start".into());
 
-  let val = view! {
+  mount_to_body!({
     <div>
-      <ExampleComponent />
+      <ExampleComponent count=value on_click=clear />
     </div>
-  };
+  });
 
-  console::log_1(&"Created Element".into());
+  return Ok(());
+}
 
-  body.append_child(&val.into())?;
+#[allow(dead_code)]
+fn hr() -> Result<(), JsValue> {
+  mount_to_body!({ <hr/> });
+  return Ok(());
+}
 
-  console::log_1(&"Appended Element".into());
-
+#[allow(dead_code)]
+fn milela() -> Result<(), JsValue> {
+  mount_to_body!({
+    <div>
+      <h1 style="font-size: 100px;">"Milela!"</h1>
+      <hr/>
+    </div>
+  });
   return Ok(());
 }
 
 // Called by our JS entry point to run the example
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
-  // Use `web_sys`'s global `window` function to get a handle on the global
-  // window object.
-  let window = web_sys::window().expect("no global `window` exists");
-  let document = window.document().expect("should have a document on window");
-  let body = document.body().expect("document should have a body");
+  milela()?;
 
-  // example_second_ticker(Info(&window, &document, &body))?;
-  // example_element_names(Info(&window, &document, &body))?;
-  // example_counter(Info(&window, &document, &body))?;
-  example_const_read_signals(Info(&window, &document, &body))?;
-  example_component(Info(&window, &document, &body))?;
+  example_second_ticker()?;
+  hr()?;
+  example_element_names()?;
+  hr()?;
+  example_counter()?;
+  hr()?;
+  example_const_read_signals()?;
+  hr()?;
+  example_component()?;
 
   Ok(())
 }
