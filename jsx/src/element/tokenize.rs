@@ -1,4 +1,4 @@
-use crate::attribute::AttributeValue;
+use crate::{attribute::AttributeValue, element::path_element::PathElement};
 
 use super::{element::ElementValue, Element};
 use quote::{format_ident, quote};
@@ -16,7 +16,9 @@ impl Element {
           Element::Element(_) | Element::Literal(_) => {
             let child = child.to_client_tokens();
             quote! {
-              element.append_child(&#child.into())?;
+              let _document = document.clone();
+              jsx::utils::AppendToElement::append_to_element(&#child, &element)?;
+              let document = _document;
             }
           }
           Element::Updateable(_) => {
@@ -41,7 +43,9 @@ impl Element {
             let attribute_name = &attribute.name;
             let fn_name = format_ident!("set_{attribute_name}");
             quote! {
+              let _document = document.clone();
               builder.#fn_name(#value);
+              let document = _document;
             }
           });
 
@@ -52,7 +56,8 @@ impl Element {
 
               let props = builder.build()?;
 
-              let view = #component_name(document, props)?;
+              // let view = #component_name(document.clone(), jsx::utils::IntoElementOption::into_element_option(&element), props)?;
+              let view = #component_name(document.clone(), jsx::utils::IntoElementOption::into_element_option(element.clone()), props)?;
               view
             }
           }
@@ -63,7 +68,7 @@ impl Element {
 
           quote! {
             {
-              let element = document.create_element(#name)?;
+              let element = ::std::rc::Rc::new(document.create_element(#name)?);
               #(#children)*
               #(#attributes)*
 
@@ -78,15 +83,78 @@ impl Element {
         }
       }
       Element::Updateable(path) => {
-        let path = &path.0.path;
-        quote! {
-          {
-            let ___signal___ = jsx::signal::into_read_signal(#path);
-            let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(___signal___.get().to_string().as_str())));
-            ___signal___.add_listener(___text___.clone());
-            ___text___.clone()
+        // Sooo
+        // For something like PATH we do what we've done before
+        // BUT for Field we do something different
+        // We convert the base into the signal
+        // And use a custom add_Listener fn to set the data
+        // I think we can do that at least lol
+
+        match path {
+          PathElement::Field(field) => {
+            let base = &field.base;
+            let member = &field.member;
+
+            // let a = A(0u32);
+            // let (map, set_map) = create_signal(a);
+            // let ___signal___ = crate::signal::into_read_signal(map);
+            // // fn get_data<I, O>(val: I) -> O {
+            // //   return val.0;
+            // // }
+            // let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(
+            //   document.create_text_node(
+            //     crate::signal::ReadSignal::get(&___signal___)
+            //       .0
+            //       .to_string()
+            //       .as_str(),
+            //   ),
+            // ));
+            // let ___text___2 = ___text___.clone();
+            // crate::signal::add_listener_fn(&___signal___, move |val| {
+            //   let a = val.0;
+            //   ___text___2.borrow_mut().set_data(a.to_string().as_str());
+            // });
+            // let b = ___text___.clone();
+
+            quote! {
+              {
+                let ___signal___ = jsx::signal::into_read_signal(#base.clone());
+                let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(jsx::signal::ReadSignal::get(&___signal___).#member.to_string().as_str())));
+                let ___text___2 = ___text___.clone();
+                jsx::signal::add_listener_fn(&___signal___, move |val| {
+                  ___text___2.borrow_mut().set_data(val.#member.to_string().as_str());
+                });
+                ___text___.clone()
+              }
+            }
+          }
+          PathElement::Path(path) => {
+            let path = &path.path;
+            quote! {
+              {
+                let ___signal___ = jsx::signal::into_read_signal(#path);
+                let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(jsx::signal::ReadSignal::get(&___signal___).to_string().as_str())));
+                jsx::signal::ReadSignal::add_listener(&___signal___, ___text___.clone());
+                ___text___.clone()
+              }
+            }
           }
         }
+
+        // // let base = *path.0.base;
+        // // let path = &path.0.member;
+        // quote! {
+        //   // {
+        //   //   let ___signal___ = jsx::signal::into_read_signal(#path);
+        //     // let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node(jsx::signal::ReadSignal::get(&___signal___).to_string().as_str())));
+        //   //   jsx::signal::ReadSignal::add_listener(&___signal___, ___text___.clone());
+        //   //   ___text___.clone()
+        //   // }
+        //   {
+        //     let ___text___ = std::rc::Rc::new(std::cell::RefCell::new(document.create_text_node("Test")));
+        //     ___text___.clone()
+        //   }
+        // }
       }
     };
   }

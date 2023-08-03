@@ -54,7 +54,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
   fn get_generic_data(
     props: &Vec<Prop>,
   ) -> (
-    Vec<PatIdent>,
+    Vec<proc_macro2::TokenStream>,
     Vec<proc_macro2::TokenStream>,
     Vec<proc_macro2::Ident>,
     Vec<proc_macro2::TokenStream>,
@@ -148,7 +148,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
         phantom: phantom_option,
       });
 
-      names.push(name.clone());
+      names.push(quote! { #name, });
       names_and_types.push(quote! { #name: #ty, });
     }
 
@@ -215,10 +215,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
     let mut build_required = vec![];
     let mut build_destructuring = vec![];
 
-    names.extend(prop_names.iter().map(|name| {
-      let ident = &name.ident;
-      quote! { #ident }
-    }));
+    names.extend(prop_names.clone());
 
     for PropField {
       is_optional,
@@ -269,7 +266,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
 
       if let Some((phantom, ident)) = phantom {
         builder_fields.push(quote! { #phantom });
-        names.push(quote! { #ident: std::marker::PhantomData });
+        names.push(quote! { #ident: std::marker::PhantomData, });
         builder_new.push(quote! { #ident: std::marker::PhantomData });
       }
     }
@@ -301,7 +298,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
           let #builder_struct_name { #(#build_destructuring)* .. } = self;
 
           Ok(#props_struct_name {
-            #(#names),*
+            #(#names)*
           })
         }
 
@@ -317,16 +314,20 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
 
     #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments, dead_code)]
     #vis fn #name <#all_generics_with_bounds> (
-      document: &::web_sys::Document,
+      document: ::std::rc::Rc<web_sys::Document>,
+      // parent: Option<&::web_sys::Element>,
+      parent: Option<::std::rc::Rc<web_sys::Element>>,
       props: #props_struct_name <#all_generic_names>
     ) #ret #(+ #lifetimes)*
     #where_clause
     {
-      let #props_struct_name { #(#prop_names),* ,.. } = props;
+      let #props_struct_name { #(#prop_names)* .. } = props;
 
       #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments)]
       #vis fn #name_inner <#all_generics_with_bounds> (
-        document: &::web_sys::Document,
+        document: ::std::rc::Rc<web_sys::Document>,
+        // parent: Option<&::web_sys::Element>,
+        parent: Option<::std::rc::Rc<web_sys::Element>>,
         #(#prop_names_and_types)*
       ) #ret #(+ #lifetimes2)*
       #where_clause
@@ -334,7 +335,7 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
         #(#stmts)*
       }
 
-      return #name_inner(document, #(#prop_names),*);
+      return #name_inner(document, parent, #(#prop_names)*);
     }
   };
 

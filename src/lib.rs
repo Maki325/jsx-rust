@@ -5,8 +5,12 @@ use jsx::{
 use jsx_macros::view;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, Event};
+mod app;
+// mod app_all;
 mod component;
+// mod lib_start;
 
+use app::*;
 use component::*;
 
 #[derive(Clone)]
@@ -35,7 +39,8 @@ fn example_second_ticker() -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
   let window = web_sys::window().expect("no global `window` exists");
-  let document = &window.document().expect("should have a document on window");
+  // let document = &window.document().expect("should have a document on window");
+  let document = ::std::rc::Rc::new(window.document().expect("should have a document on window"));
   let body = document.body().expect("document should have a body");
 
   let el = view! {
@@ -97,7 +102,9 @@ fn example_counter() -> Result<(), JsValue> {
     <div>
       <button on::click=clear>"Clear"</button>
       <button on::click=decrement>"-1"</button>
-      <span>"Value: " {value} "!"</span>
+      <span>"Value 1: " {value} "!"</span>
+      <span>"Value 2: " {value} "!"</span>
+      <span>"Value 3: " {value} "!"</span>
       <button on::click=increment>"+1"</button>
     </div>
   });
@@ -124,7 +131,9 @@ fn example_const_read_signals() -> Result<(), JsValue> {
 
   mount_to_body!({
     <div>
-      <span>"num: " {num}</span> <br/>
+      <span>"num 1: " {num}</span> <br/>
+      <span>"num 2: " {num}</span> <br/>
+      <span>"num 3: " {num}</span> <br/>
       <span>"static_str: \"" {static_str} "\""</span> <br/>
       <span>"string: \"" {string} "\""</span> <br/>
       <span>"custon_struct: " {custon_struct}</span> <br/>
@@ -174,17 +183,19 @@ fn milela() -> Result<(), JsValue> {
 // Called by our JS entry point to run the example
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
-  milela()?;
+  // milela()?;
 
-  example_second_ticker()?;
-  hr()?;
-  example_element_names()?;
-  hr()?;
-  example_counter()?;
-  hr()?;
-  example_const_read_signals()?;
-  hr()?;
-  example_component()?;
+  // example_second_ticker()?;
+  // hr()?;
+  // example_element_names()?;
+  // hr()?;
+  // example_counter()?;
+  // hr()?;
+  // example_const_read_signals()?;
+  // hr()?;
+  // example_component()?;
+
+  mount_to_body!({<App/>});
 
   Ok(())
 }

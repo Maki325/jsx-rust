@@ -4,6 +4,7 @@ use crate::{
   utils,
 };
 use proc_macro2::{TokenStream, TokenTree};
+use quote::ToTokens;
 use syn::{
   parse::{Parse, ParseStream, Parser},
   spanned::Spanned,
@@ -135,13 +136,28 @@ impl Element {
     }
     let stmt = block.stmts.pop().expect("Should exist");
 
+    // let a = match &stmt {
+    //   Stmt::Expr(..) => "Stmt::Expr",
+    //   Stmt::Local(..) => "Stmt::Local",
+    //   Stmt::Item(..) => "Stmt::Item",
+    //   Stmt::Macro(..) => "Stmt::Macro",
+    // };
+    // println!("A: {}", a);
+
     let expr = match stmt {
       Stmt::Expr(expr, _) => expr,
       _ => return Err(syn::Error::new(stmt.span(), "Expected an Expr")),
     };
 
-    let path = match expr {
-      Expr::Path(path) => path,
+    // println!(
+    //   "expr_type: {:#?} || {}",
+    //   expr.to_token_stream(),
+    //   expr_type(&expr)
+    // );
+
+    let data = match expr {
+      Expr::Field(field) => field.into(),
+      Expr::Path(field) => field.into(),
       _ => {
         return Err(syn::Error::new(
           expr.span(),
@@ -150,7 +166,7 @@ impl Element {
       }
     };
 
-    return Ok(Element::Updateable(path.into()));
+    return Ok(Element::Updateable(data));
   }
 }
 

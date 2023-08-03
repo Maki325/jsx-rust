@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use jsx::signal::ReadSignal;
 use jsx_macros::{component, view};
 use wasm_bindgen::JsValue;
@@ -9,7 +11,7 @@ pub fn TestComponent(
   last_count: dyn IntoReadSignal<i32>,
   some_number: i32,
   some_opt_number: Option<i32>,
-) -> Result<web_sys::Element, JsValue> {
+) -> Result<Rc<web_sys::Element>, JsValue> {
   console::log_1(&"Start".into());
 
   return Ok(view! {
@@ -24,7 +26,7 @@ pub fn TestComponent(
 pub fn ExampleComponent<F: Fn(Event) + 'static>(
   count: dyn IntoReadSignal<i32>,
   on_click: F,
-) -> Result<web_sys::Element, JsValue> {
+) -> Result<Rc<web_sys::Element>, JsValue> {
   console::log_1(&"Start".into());
 
   return Ok(view! {

@@ -9,12 +9,12 @@ edition = "2021"
 jsx = { path = "./jsx" }
 jsx_macros = { path = "./jsx_macros" }
 wasm-bindgen = "0.2.74"
+js-sys = "0.3.64"
+serde = { version = "1.0.180", features = ["derive"] }
+serde_json = "1.0.104"
 
 [workspace]
-members = [
-  "jsx",
-  "jsx_macros",
-]
+members = ["jsx", "jsx_macros"]
 
 [lib]
 crate-type = ["cdylib"]
