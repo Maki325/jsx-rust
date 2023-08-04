@@ -118,21 +118,6 @@ impl_get_functions!(GetSignal, get);
 impl_get_functions!(ConstGetSignal, get);
 impl_set_functions!(SetSignal, set);
 
-// impl<T: Clone> GetSignal<T> {
-//   pub fn add_listener_fn<F>(&self, listener: F)
-//   where
-//     F: Fn(T) + 'static,
-//   {
-//     let signal = unsafe { self.signal.as_mut().expect("Signal should exist!") };
-
-//     self.add_listener(Rc::new(RefCell::new(listener)));
-//     // self.add_listener(listener);
-//     // let l: U = listener.into();
-
-//     // signal.listeners.push(Rc::new(RefCell::new(l)));
-//   }
-// }
-
 pub fn add_listener_fn<T, R, F>(signal: &R, listener: F)
 where
   T: Clone,
@@ -242,18 +227,6 @@ impl<T: Clone, R: ReadSignal<T>> IntoReadSignal<T, R> for R {
     return self;
   }
 }
-
-// impl From<u8> for ConstGetSignal<u8> {
-//   fn from(value: u8) -> Self {
-//     return ConstGetSignal { value };
-//   }
-// }
-
-// impl From<u8> for dyn ReadSignal<u8> {
-//   fn from(value: u8) -> Self {
-//     return ConstGetSignal { value };
-//   }
-// }
 
 pub fn into_read_signal<T, R, I>(val: I) -> R
 where

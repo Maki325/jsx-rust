@@ -14,110 +14,44 @@ impl AppendToElement for js_sys::Array {
   }
 }
 
-impl AppendToElement for web_sys::Element {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    element.append_child(self)?;
+macro_rules! impl_append_to_element {
+  ($($name:path),+) => {
+    $(impl AppendToElement for $name {
+      fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
+        element.append_child(self)?;
 
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Rc<web_sys::Element> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    element.append_child(self)?;
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Vec<web_sys::Element> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    for el in self {
-      element.append_child(el)?;
+        return Ok(());
+      }
     }
 
-    return Ok(());
-  }
-}
+    impl AppendToElement for Rc<$name> {
+      fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
+        element.append_child(self)?;
 
-impl AppendToElement for Vec<Rc<web_sys::Element>> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    for el in self {
-      element.append_child(el)?;
+        return Ok(());
+      }
     }
 
-    return Ok(());
-  }
-}
+    impl AppendToElement for Vec<$name> {
+      fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
+        for el in self {
+          element.append_child(el)?;
+        }
 
-impl AppendToElement for web_sys::Node {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    element.append_child(self)?;
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Rc<web_sys::Node> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    element.append_child(self)?;
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Vec<web_sys::Node> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    for el in self {
-      element.append_child(el)?;
+        return Ok(());
+      }
     }
 
-    return Ok(());
-  }
+    impl AppendToElement for Vec<Rc<$name>> {
+      fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
+        for el in self {
+          element.append_child(el)?;
+        }
+
+        return Ok(());
+      }
+    })*
+  };
 }
 
-impl AppendToElement for Vec<Rc<web_sys::Node>> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    for el in self {
-      element.append_child(el)?;
-    }
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for web_sys::Text {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    element.append_child(self)?;
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Rc<web_sys::Text> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    element.append_child(self)?;
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Vec<web_sys::Text> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    for el in self {
-      element.append_child(el)?;
-    }
-
-    return Ok(());
-  }
-}
-
-impl AppendToElement for Vec<Rc<web_sys::Text>> {
-  fn append_to_element(&self, element: &web_sys::Element) -> Result<(), JsValue> {
-    for el in self {
-      element.append_child(el)?;
-    }
-
-    return Ok(());
-  }
-}
+impl_append_to_element!(web_sys::Element, web_sys::Node, web_sys::Text);

@@ -83,12 +83,6 @@ pub fn App() -> Result<Rc<web_sys::Element>, JsValue> {
           value: if i % 2 == 0 { x.value + 1 } else { x.value },
         })
         .collect()
-      // x.into_iter()
-      //   .map(|x| Test {
-      //     id: x.id,
-      //     value: x.value + 1,
-      //   })
-      //   .collect()
     });
   };
 

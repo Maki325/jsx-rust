@@ -4,11 +4,9 @@ use jsx::{
 };
 use jsx_macros::view;
 use wasm_bindgen::prelude::*;
-use web_sys::{console, Event};
+use web_sys::console;
 mod app;
-// mod app_all;
 mod component;
-// mod lib_start;
 
 use app::*;
 use component::*;
@@ -24,10 +22,7 @@ impl ToString for Test {
   }
 }
 mod a {
-  use jsx::{
-    into_const_read_signal,
-    signal::{ConstGetSignal, IntoReadSignal},
-  };
+  use jsx::into_const_read_signal;
 
   into_const_read_signal!(crate::Test);
 }
@@ -39,7 +34,6 @@ fn example_second_ticker() -> Result<(), JsValue> {
   console::log_1(&"Start".into());
 
   let window = web_sys::window().expect("no global `window` exists");
-  // let document = &window.document().expect("should have a document on window");
   let document = ::std::rc::Rc::new(window.document().expect("should have a document on window"));
   let body = document.body().expect("document should have a body");
 

@@ -315,7 +315,6 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
     #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments, dead_code)]
     #vis fn #name <#all_generics_with_bounds> (
       document: ::std::rc::Rc<web_sys::Document>,
-      // parent: Option<&::web_sys::Element>,
       parent: Option<::std::rc::Rc<web_sys::Element>>,
       props: #props_struct_name <#all_generic_names>
     ) #ret #(+ #lifetimes)*
@@ -326,7 +325,6 @@ pub fn component(_args: TokenStream, s: TokenStream) -> TokenStream {
       #[allow(non_camel_case_types, non_snake_case, unused_variables, clippy::too_many_arguments)]
       #vis fn #name_inner <#all_generics_with_bounds> (
         document: ::std::rc::Rc<web_sys::Document>,
-        // parent: Option<&::web_sys::Element>,
         parent: Option<::std::rc::Rc<web_sys::Element>>,
         #(#prop_names_and_types)*
       ) #ret #(+ #lifetimes2)*

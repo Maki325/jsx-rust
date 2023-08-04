@@ -18,12 +18,3 @@ where
     self(new_value);
   }
 }
-
-// impl<F> Runnable for F
-// where
-//   F: Fn(T),
-// {
-//   fn run(&self, x: &i32) {
-//     self(x);
-//   }
-// }
