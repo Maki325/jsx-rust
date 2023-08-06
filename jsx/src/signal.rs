@@ -10,19 +10,30 @@ impl<T: Clone> Signal<T> {
   fn get(&self) -> T {
     return self.value.clone();
   }
+
+  fn get_mut(&mut self) -> &mut T {
+    return &mut self.value;
+  }
+
   fn set(&mut self, val: T) {
     self.value = val.clone();
 
+    self.call_listeners();
+  }
+
+  fn call_listeners(&self) {
     for listener in &self.listeners {
-      listener.borrow_mut().update(val.clone());
+      listener.borrow_mut().update(self.value.clone());
     }
   }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GetSignal<T: Clone> {
   pub signal: *mut Signal<T>,
 }
+
+impl<T: Clone> Copy for GetSignal<T> {}
 
 #[derive(Clone, Copy)]
 pub struct ConstGetSignal<T: Clone> {
@@ -37,10 +48,12 @@ pub trait ReadSignal<T: Clone> {
     U: Updateable<T> + 'static;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SetSignal<T: Clone> {
   pub signal: *mut Signal<T>,
 }
+
+impl<T: Clone> Copy for SetSignal<T> {}
 
 macro_rules! impl_get_functions {
   ($struct:ident, $function_name:ident) => {
@@ -167,6 +180,17 @@ impl<T: Clone> SetSignal<T> {
     let signal = unsafe { self.signal.as_ref().expect("Signal should exist!") };
     let old_value = signal.get();
     self.set(f(old_value));
+  }
+
+  pub fn with<F>(&self, f: F)
+  where
+    F: FnOnce(&mut T),
+  {
+    let signal = unsafe { self.signal.as_mut().expect("Signal should exist!") };
+
+    f(signal.get_mut());
+
+    signal.call_listeners();
   }
 }
 

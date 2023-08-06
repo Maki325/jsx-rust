@@ -22,9 +22,8 @@ pub fn App() -> Result<Rc<web_sys::Element>, JsValue> {
     Test { id: 4, value: 4 },
   ]);
 
-  let _set_data = set_data.clone();
   let insert_start = move |_| {
-    _set_data.update(|x| {
+    set_data.update(|x| {
       let mut x = x.clone();
 
       x.insert(
@@ -42,9 +41,8 @@ pub fn App() -> Result<Rc<web_sys::Element>, JsValue> {
     });
   };
 
-  let _set_data = set_data.clone();
   let insert_end = move |_| {
-    _set_data.update(|x| {
+    set_data.update(|x| {
       let mut x = x.clone();
 
       x.push(Test {
@@ -56,9 +54,8 @@ pub fn App() -> Result<Rc<web_sys::Element>, JsValue> {
     });
   };
 
-  let _set_data = set_data.clone();
   let insert_almost_end = move |_| {
-    _set_data.update(|x| {
+    set_data.update(|x| {
       let mut x = x.clone();
 
       x.insert(
@@ -73,9 +70,8 @@ pub fn App() -> Result<Rc<web_sys::Element>, JsValue> {
     });
   };
 
-  let _set_data = set_data.clone();
   let increase_by_one = move |_| {
-    _set_data.update(|x| {
+    set_data.update(|x| {
       x.into_iter()
         .enumerate()
         .map(|(i, x)| Test {

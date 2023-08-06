@@ -1,3 +1,5 @@
+use std::panic;
+
 use jsx::{
   mount_to_body,
   signal::{create_signal, ReadSignal},
@@ -6,9 +8,11 @@ use jsx_macros::view;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 mod app;
+mod benchmark;
 mod component;
 
 use app::*;
+use benchmark::*;
 use component::*;
 
 #[derive(Clone)]
@@ -177,6 +181,7 @@ fn milela() -> Result<(), JsValue> {
 // Called by our JS entry point to run the example
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
+  panic::set_hook(Box::new(console_error_panic_hook::hook));
   // milela()?;
 
   // example_second_ticker()?;
@@ -189,7 +194,7 @@ pub fn start() -> Result<(), JsValue> {
   // hr()?;
   // example_component()?;
 
-  mount_to_body!({<App/>});
+  mount_to_body!({<Benchmark/>});
 
   Ok(())
 }
