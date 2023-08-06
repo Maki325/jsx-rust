@@ -1,4 +1,8 @@
-use std::{collections::HashMap, hash::Hash, rc::Rc};
+use std::{
+  collections::{HashMap, HashSet},
+  hash::Hash,
+  rc::Rc,
+};
 
 use wasm_bindgen::JsValue;
 use web_sys::{console, Element};
@@ -183,22 +187,23 @@ pub fn For<
         return;
       }
 
-      let update = |mut old_map: Map<K, T>| -> Result<Map<K, T>, JsValue> {
-        let mut map: Map<K, T> = HashMap::with_capacity(new_count);
-        let mut elements: Vec<Rc<Element>> = vec![];
+      let update = |old_map: &mut Map<K, T>| -> Result<(), JsValue> {
+        if new_count > old_map.capacity() {
+          old_map.reserve(new_count - old_map.capacity());
+        }
 
         let mut last: Option<Rc<Element>> = None;
+        let mut updated_keys = HashSet::<K>::new();
 
         for (i, data) in list.into_iter().enumerate() {
           let k = key(&data);
+          updated_keys.insert(k.clone());
 
-          let el = match old_map.remove(&k) {
+          let el = match old_map.get_mut(&k) {
             Some((el, set_signal, old_position)) => {
               set_signal.set(data);
-              elements.push(el.clone());
-              map.insert(k, (el.clone(), set_signal, i));
 
-              if old_position != i {
+              if *old_position != i {
                 if i == 0 {
                   if let Some(parent) = &parent {
                     parent.insert_adjacent_element("afterbegin", &*el)?;
@@ -211,14 +216,14 @@ pub fn For<
                 }
               }
 
-              el
+              *old_position = i;
+
+              el.clone()
             }
             None => {
               let (get, set) = create_signal(data);
 
               let el = view(get)?;
-
-              elements.push(el.clone());
 
               if i == 0 {
                 if let Some(parent) = &parent {
@@ -231,7 +236,7 @@ pub fn For<
                 last.insert_adjacent_element("afterend", &*el)?;
               }
 
-              map.insert(k, (el.clone(), set, i));
+              old_map.insert(k, (el.clone(), set, i));
 
               el
             }
@@ -241,24 +246,19 @@ pub fn For<
         }
 
         for (key, (el, _, _)) in old_map.into_iter() {
-          if !map.contains_key(&key) {
+          if !updated_keys.contains(&key) {
             el.remove();
           }
         }
 
-        Ok(map)
+        Ok(())
       };
 
-      set_map.update(|old_map| {
-        let value = match update(old_map) {
-          Ok(value) => value,
-          Err(err) => {
-            console::error_2(&"Update ForEach error:".into(), &err);
-            panic!("Error: {:?}", err);
-          }
+      set_map.with(|old_map| {
+        if let Err(err) = update(old_map) {
+          console::error_2(&"Update ForEach error:".into(), &err);
+          panic!("Error: {:?}", err);
         };
-
-        value
       });
     });
 
